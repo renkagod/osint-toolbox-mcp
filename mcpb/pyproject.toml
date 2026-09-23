@@ -1,7 +1,7 @@
 # Project file for the MCP bundle (.mcpb): the host runs src/main.py with uv. No build system, no dependencies.
 [project]
 name = "osint-toolbox-mcp"
-version = "1.0.0"
+version = "1.0.1"
 description = "MCP server that lets AI agents run OSINT tools locally"
 requires-python = ">=3.10"
 dependencies = []

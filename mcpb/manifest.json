@@ -3,7 +3,7 @@
   "manifest_version": "0.4",
   "name": "osint-toolbox-mcp",
   "display_name": "OSINT Toolbox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Run Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot, Blackbird, PhoneInfoga and ExifTool locally.",
   "long_description": "Lets the assistant run classic OSINT tools on your machine: username searches (Sherlock, Maigret, Blackbird), email checks (Holehe, GHunt), domain reconnaissance (theHarvester, SpiderFoot), phone number scans (PhoneInfoga) and file metadata (ExifTool). No API keys are needed.\n\nThe tools themselves are installed separately; only the ones found on your machine are offered. See the [installation guide](https://github.com/renkagod/osint-toolbox-mcp#install-the-tools).",
   "author": {

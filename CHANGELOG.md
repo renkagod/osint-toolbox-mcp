@@ -2,6 +2,13 @@
 
 The project follows [Semantic Versioning](https://semver.org/). The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.1] - 2026-09-24
+
+### Fixed
+
+- Run from `uvx` (or any virtual environment), the server started SpiderFoot and Blackbird checkouts without their own `.venv` with its own Python, which lacks their packages. It now looks for Python on PATH outside its own environment.
+- `--check` shows tool paths in the platform's usual form.
+
 ## [1.0.0] - 2026-09-24
 
 First release.
