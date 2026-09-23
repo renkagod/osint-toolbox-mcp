@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "osint-tools": {
+      "command": "D:/Coding/Python/python.exe",
+      "args": [
+        "d:/Coding/Projects/OSINT/osint-tools-mcp-server/src/osint_tools_mcp_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "HTTP_PROXY": "socks5h://127.0.0.1:2080",
+        "HTTPS_PROXY": "socks5h://127.0.0.1:2080",
+        "ALL_PROXY": "socks5h://127.0.0.1:2080"
+      }
+    }
+  }
+}

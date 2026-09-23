@@ -1,0 +1,13 @@
+diff --git a/requirements.txt b/requirements.txt
+index 408acec9..fcb8bf30 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -5,7 +5,7 @@ CherryPy>=18.8.0,<19
+ cherrypy-cors>=1.6,<2
+ Mako>=1.2.4,<2
+ beautifulsoup4>=4.11.2,<5
+-lxml>=4.9.2,<5
++lxml>=4.9.2
+ netaddr>=0.8.0,<1
+ pysocks>=1.7.1,<2
+ requests>=2.28.2,<3

@@ -1,0 +1,8 @@
+# Third-party tools are reinstalled from README, not vendored
+opt/
+# Scan results and logs can contain other people's personal data
+reports/
+logs/
+osint-tools-mcp-server/reports/
+__pycache__/
+*.pyc
