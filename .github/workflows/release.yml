@@ -20,7 +20,7 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match version $version" >&2
             exit 1
           fi
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
       - run: uv run pytest
       - run: uv build
       - run: python3 scripts/build_mcpb.py
