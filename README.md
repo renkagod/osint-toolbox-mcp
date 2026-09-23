@@ -1,6 +1,6 @@
 # OSINT tools
 
-Личный набор для OSINT: MCP-сервер, через который агенты (Claude Code, Antigravity) запускают OSINT-утилиты, и настройка этих утилит на машине.
+Личный набор для OSINT: MCP-сервер, через который агенты запускают OSINT-утилиты, и настройка этих утилит на машине.
 
 ## Что здесь
 - `osint-tools-mcp-server/` — MCP-сервер (stdio). Основа — [frishtik/osint-tools-mcp-server](https://github.com/frishtik/osint-tools-mcp-server) на коммите `6a64661` (MIT). Доработки: запросы выполняются параллельно, есть отмена и `ping`, утилиты не наследуют stdin сервера, добавлены PhoneInfoga и ExifTool, пути прописаны под `D:\Coding`.
@@ -21,5 +21,4 @@
 
 ## Подключение к агентам
 - Утилиты ходят в сеть через локальный прокси Throne `socks5h://127.0.0.1:2080` (переменные `*_PROXY` в конфиге).
-- Antigravity читает `.agents/mcp_config.json`.
-- Claude Code, только для этой папки: из неё выполнить `claude mcp add-json --scope local osint-tools '<JSON сервера osint-tools из .agents/mcp_config.json>'`.
+- Antigravity читает `.agents/mcp_config.json`. Другим MCP-клиентам нужны те же команда, аргументы и переменные окружения (транспорт stdio).
