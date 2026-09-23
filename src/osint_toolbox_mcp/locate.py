@@ -56,12 +56,12 @@ def _locate_program(program: Program) -> tuple[Located | None, str]:
         path = shutil.which(override)
         if not path:
             return None, f"{program.env} is set to {override!r}, which is not an executable"
-        return Located((path,)), ""
+        return Located((os.path.normpath(path),)), ""
     search = search_path()
     for name in program.names:
         path = shutil.which(name, path=search)
         if path:
-            return Located((path,)), ""
+            return Located((os.path.normpath(path),)), ""
     return None, "not found"
 
 
@@ -89,11 +89,27 @@ def _python_for(root: Path, env: str) -> str | None:
         candidate = root / venv / inner
         if candidate.is_file():
             return str(candidate)
+    search = _without_own_environment(os.environ.get("PATH", ""))
     for name in ("python", "python3") if sys.platform == "win32" else ("python3", "python"):
-        path = shutil.which(name)
+        path = shutil.which(name, path=search)
         if path:
             return path
     return None
+
+
+def _without_own_environment(path: str) -> str:
+    """PATH minus the server's own virtual environment: uvx puts it first, and it has none of the tools' packages."""
+    if sys.prefix == sys.base_prefix:
+        return path
+    own = os.path.normcase(os.path.abspath(sys.prefix))
+
+    def inside(folder: str) -> bool:
+        try:
+            return os.path.commonpath([own, os.path.normcase(os.path.abspath(folder))]) == own
+        except ValueError:  # another drive
+            return False
+
+    return os.pathsep.join(folder for folder in path.split(os.pathsep) if folder and not inside(folder))
 
 
 def search_path() -> str:

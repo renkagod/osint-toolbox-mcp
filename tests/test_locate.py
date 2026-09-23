@@ -59,6 +59,26 @@ def test_script_prefers_the_checkout_venv(monkeypatch, tmp_path):
     assert located.cwd == str(tmp_path)
 
 
+def test_script_python_skips_the_servers_own_environment(monkeypatch, tmp_path):
+    """Under uvx the server's venv comes first on PATH; running a checkout with it would miss its packages."""
+    checkout = tmp_path / "spiderfoot"
+    checkout.mkdir()
+    (checkout / "sf.py").write_text("")
+    own_env, system = tmp_path / "uvx-env", tmp_path / "system"
+    own_bin = own_env / ("Scripts" if sys.platform == "win32" else "bin")
+    own_bin.mkdir(parents=True)
+    system.mkdir()
+    for folder in (own_bin, system):
+        fake_executable(folder, "python")
+        fake_executable(folder, "python3")
+    monkeypatch.setattr(sys, "prefix", str(own_env))
+    monkeypatch.setattr(sys, "base_prefix", str(system))
+    monkeypatch.setenv("PATH", os.pathsep.join([str(own_bin), str(system)]))
+    monkeypatch.setenv("OSINT_SPIDERFOOT_DIR", str(checkout))
+    located, _ = locate(SPIDERFOOT)
+    assert Path(located.command[0]).parent == system
+
+
 def test_script_python_override(monkeypatch, tmp_path):
     (tmp_path / "sf.py").write_text("")
     monkeypatch.setenv("OSINT_SPIDERFOOT_DIR", str(tmp_path))
