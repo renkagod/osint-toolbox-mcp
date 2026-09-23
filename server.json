@@ -1,0 +1,47 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.renkagod/osint-toolbox-mcp",
+  "title": "OSINT Toolbox",
+  "description": "Run Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot and more OSINT tools locally",
+  "repository": {
+    "url": "https://github.com/renkagod/osint-toolbox-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/renkagod/osint-toolbox-mcp",
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "osint-toolbox-mcp",
+      "version": "1.0.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "OSINT_SPIDERFOOT_DIR",
+          "description": "Folder of a SpiderFoot checkout (the one with sf.py)",
+          "isRequired": false
+        },
+        {
+          "name": "OSINT_BLACKBIRD_DIR",
+          "description": "Folder of a Blackbird checkout (the one with blackbird.py)",
+          "isRequired": false
+        },
+        {
+          "name": "OSINT_EXIFTOOL",
+          "description": "Path to exiftool, if it is not on PATH",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/renkagod/osint-toolbox-mcp:1.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

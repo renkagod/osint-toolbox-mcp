@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Tool versions baked into the Docker image
+  - package-ecosystem: pip
+    directories:
+      - /docker/sherlock
+      - /docker/holehe
+      - /docker/maigret
+      - /docker/ghunt
+      - /docker/theharvester
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
+  "manifest_version": "0.4",
+  "name": "osint-toolbox-mcp",
+  "display_name": "OSINT Toolbox",
+  "version": "1.0.0",
+  "description": "Run Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot, Blackbird, PhoneInfoga and ExifTool locally.",
+  "long_description": "Lets the assistant run classic OSINT tools on your machine: username searches (Sherlock, Maigret, Blackbird), email checks (Holehe, GHunt), domain reconnaissance (theHarvester, SpiderFoot), phone number scans (PhoneInfoga) and file metadata (ExifTool). No API keys are needed.\n\nThe tools themselves are installed separately; only the ones found on your machine are offered. See the [installation guide](https://github.com/renkagod/osint-toolbox-mcp#install-the-tools).",
+  "author": {
+    "name": "renkagod",
+    "url": "https://github.com/renkagod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/renkagod/osint-toolbox-mcp.git"
+  },
+  "homepage": "https://github.com/renkagod/osint-toolbox-mcp",
+  "documentation": "https://github.com/renkagod/osint-toolbox-mcp#readme",
+  "support": "https://github.com/renkagod/osint-toolbox-mcp/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/main.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "src/main.py"],
+      "env": {
+        "OSINT_SPIDERFOOT_DIR": "${user_config.spiderfoot_dir}",
+        "OSINT_BLACKBIRD_DIR": "${user_config.blackbird_dir}",
+        "OSINT_EXIFTOOL": "${user_config.exiftool_path}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "sherlock_username_search", "description": "Find accounts that use a username on 400+ sites (Sherlock)" },
+    { "name": "holehe_email_search", "description": "Check which of about 120 sites have an account for an email address (Holehe)" },
+    { "name": "spiderfoot_scan", "description": "Run a SpiderFoot scan of a domain, IP, email, phone number, username or name" },
+    { "name": "ghunt_google_search", "description": "Look up a Google account by email address or Gaia ID (GHunt)" },
+    { "name": "maigret_username_search", "description": "Search a username on up to 3000+ sites and extract profile data (Maigret)" },
+    { "name": "theharvester_domain_search", "description": "Collect emails, subdomains, hosts and IPs for a domain (theHarvester)" },
+    { "name": "blackbird_username_search", "description": "Search a username on the 700+ sites of the WhatsMyName list (Blackbird)" },
+    { "name": "phoneinfoga_scan", "description": "Scan a phone number: country, carrier, formats and search queries (PhoneInfoga)" },
+    { "name": "exiftool_metadata", "description": "Read metadata of a local photo, video or document (ExifTool)" }
+  ],
+  "keywords": ["osint", "reconnaissance", "sherlock", "maigret", "holehe", "ghunt", "theharvester", "spiderfoot", "blackbird", "phoneinfoga", "exiftool"],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  },
+  "user_config": {
+    "spiderfoot_dir": {
+      "type": "directory",
+      "title": "SpiderFoot folder",
+      "description": "Your SpiderFoot checkout (the folder with sf.py). Leave empty if you don't use SpiderFoot.",
+      "required": false
+    },
+    "blackbird_dir": {
+      "type": "directory",
+      "title": "Blackbird folder",
+      "description": "Your Blackbird checkout (the folder with blackbird.py). Leave empty if you don't use Blackbird.",
+      "required": false
+    },
+    "exiftool_path": {
+      "type": "file",
+      "title": "ExifTool program",
+      "description": "Only needed when exiftool is not on PATH.",
+      "required": false
+    }
+  }
+}
