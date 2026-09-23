@@ -1,0 +1,48 @@
+name: Bug report
+description: The server or one of its tools doesn't work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a single tool misbehaves, first check that it works when you run it yourself: sites change often and break the tools themselves.
+        Please remove other people's personal data from anything you paste.
+  - type: dropdown
+    id: tool
+    attributes:
+      label: What is affected
+      options: [The server itself, Sherlock, Holehe, Maigret, GHunt, theHarvester, SpiderFoot, Blackbird, PhoneInfoga, ExifTool]
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you run the server
+      options: [Docker image, uvx or pip, From a git checkout, MCP bundle (.mcpb)]
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client and version
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you asked for, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: check
+    attributes:
+      label: Output of `osint-toolbox-mcp --check`
+      render: text
+  - type: textarea
+    id: log
+    attributes:
+      label: Server log (stderr), if your client shows it
+      render: text

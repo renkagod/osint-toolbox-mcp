@@ -1,0 +1,21 @@
+name: New tool
+description: Suggest an OSINT tool the server should run
+labels: [enhancement]
+body:
+  - type: input
+    id: tool
+    attributes:
+      label: Tool and link
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What it finds that the current tools don't
+    validations:
+      required: true
+  - type: textarea
+    id: install
+    attributes:
+      label: How it's installed and what it needs
+      description: pip, binary, Docker, API keys, logins, license.
