@@ -292,3 +292,59 @@ def test_exiftool_needs_an_existing_absolute_path(runner, tmp_path):
         run_tool("exiftool_metadata", {"file_path": "photo.jpg"})
     with pytest.raises(ToolError, match="no such file"):
         run_tool("exiftool_metadata", {"file_path": str(tmp_path / "missing.jpg")})
+
+
+def test_subfinder(runner):
+    output = "\n".join([
+        '{"host":"www.example.com","input":"example.com","sources":["crtsh","hackertarget"]}',
+        '{"host":"API.example.com","input":"example.com","source":"alienvault"}',
+        "not json",
+    ])
+    runner.respond = lambda command, cwd: Completed(0, output, "")
+    result = json.loads(run_tool("subfinder_subdomain_search", {"domain": "Example.com", "all_sources": True, "timeout": 20}))
+    assert result == {
+        "domain": "example.com",
+        "subdomains": {"api.example.com": ["alienvault"], "www.example.com": ["crtsh", "hackertarget"]},
+    }
+    assert runner.arguments[:2] == ["-d", "example.com"]
+    assert {"-silent", "-oJ", "-cs", "-nc", "-all"} <= set(runner.arguments)
+    assert option_value(runner.arguments, "-timeout") == "20"
+
+
+def test_subfinder_rejects_non_domains(runner):
+    with pytest.raises(ToolError, match="domain"):
+        run_tool("subfinder_subdomain_search", {"domain": "not a domain"})
+
+
+def test_dnstwist(runner):
+    entries = [
+        {"fuzzer": "*original", "domain": "example.com", "dns_a": ["93.184.215.14"]},
+        {"fuzzer": "bitsquatting", "domain": "exampme.com", "dns_a": ["1.2.3.4"], "dns_mx": ["mx.exampme.com"]},
+    ]
+    runner.respond = lambda command, cwd: Completed(0, json.dumps(entries), "")
+    result = json.loads(run_tool("dnstwist_lookalike_domains", {"domain": "example.com"}))
+    assert result["lookalikes"] == [{"domain": "exampme.com", "fuzzer": "bitsquatting", "a": ["1.2.3.4"], "mx": ["mx.exampme.com"]}]
+    assert runner.arguments == ["--format", "json", "--registered", "example.com"]
+
+
+def test_dnsrecon(runner):
+    def respond(command, cwd):
+        records = [{"type": "ScanInfo", "arguments": "..."}, {"type": "A", "name": "example.com", "address": "1.2.3.4"}]
+        Path(option_value(command, "-j")).write_text(json.dumps(records))
+        return Completed(0, "", "")
+
+    runner.respond = respond
+    result = json.loads(run_tool("dnsrecon_domain_scan", {"domain": "example.com", "scan_type": "axfr"}))
+    assert result == [{"type": "A", "name": "example.com", "address": "1.2.3.4"}]
+    assert runner.arguments[:4] == ["-d", "example.com", "-t", "axfr"]
+
+
+def test_status_lists_whats_missing(isolated_tools):
+    from conftest import fake_executable
+
+    fake_executable(isolated_tools, "sherlock")
+    report = run_tool("osint_toolbox_status", {}, None)
+    assert "sherlock_username_search" in report.split("Not installed")[0]
+    assert "whois_lookup" in report.split("Not installed")[0]
+    assert "- maigret_username_search (maigret)" in report
+    assert "uvx osint-toolbox-mcp --install maigret" in report

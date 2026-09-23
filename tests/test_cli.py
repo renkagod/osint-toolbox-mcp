@@ -22,7 +22,10 @@ def test_check_lists_every_tool(tmp_path):
     done = subprocess.run([*SERVER, "--check"], capture_output=True, text=True, env=env, timeout=300)
     assert done.returncode in (0, 1)
     for tool in TOOLS:
-        assert f" {tool.label} " in done.stdout
+        if tool.requires is None:
+            assert tool.name in done.stdout
+        else:
+            assert f" {tool.label} " in done.stdout
     assert "tools ready." in done.stdout
 
 

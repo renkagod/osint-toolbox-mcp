@@ -1,4 +1,4 @@
-"""The tools this server offers: input checks, how each OSINT program is run and what it returns."""
+"""The tools this server offers: how each OSINT program is run and what it returns."""
 
 from __future__ import annotations
 
@@ -12,16 +12,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from . import process
+from . import lookups, process
+from .inputs import ToolError, choice, clean, domain, flag, integer, text
 from .locate import Located, Program, Script, locate
 
+__all__ = ["TOOLS", "TOOLS_BY_NAME", "Tool", "ToolError", "available_tools", "call_tool", "limit_output"]
+
 INSTALL_GUIDE = "https://github.com/renkagod/osint-toolbox-mcp#install-the-tools"
+INSTALL_COMMAND = "uvx osint-toolbox-mcp --install"
 DEFAULT_MAX_OUTPUT = 100_000
 IN_CONTAINER = bool(os.environ.get("OSINT_TOOLBOX_CONTAINER"))
-
-
-class ToolError(Exception):
-    """Bad input or a failed run: returned to the model as a tool error it can act on."""
 
 
 @dataclass(frozen=True)
@@ -32,10 +32,10 @@ class Tool:
     description: str
     properties: dict[str, Any]
     required: tuple[str, ...]
-    requires: Program | Script
-    install: str
-    probe: tuple[str, ...]  # arguments that make the program print its version or help and exit
-    run: Callable[[dict[str, Any], Located], Awaitable[str]]
+    run: Callable[[dict[str, Any], Located | None], Awaitable[str]]
+    requires: Program | Script | None = None  # None: built into the server
+    install: str = ""
+    probe: tuple[str, ...] = ()  # arguments that make the program print its version or help and exit
     open_world: bool = True
     in_image: bool = True  # shipped in the Docker image
 
@@ -55,90 +55,42 @@ class Tool:
 
 
 def available_tools() -> list[Tool]:
-    return [tool for tool in TOOLS if locate(tool.requires)[0] is not None]
+    return [tool for tool in TOOLS if tool.requires is None or locate(tool.requires)[0] is not None]
 
 
 async def call_tool(tool: Tool, arguments: dict[str, Any]) -> str:
-    located, reason = locate(tool.requires)
-    if located is None:
-        raise ToolError(f"{tool.label} is not available ({reason}). To install: {tool.install}. Guide: {INSTALL_GUIDE}")
+    located = None
+    if tool.requires is not None:
+        located, reason = locate(tool.requires)
+        if located is None:
+            raise ToolError(f"{tool.label} is not available ({reason}). {_how_to_install(tool)}")
     return limit_output(await tool.run(arguments, located))
 
 
-def limit_output(text: str) -> str:
+def _how_to_install(tool: Tool) -> str:
+    if IN_CONTAINER:
+        return "It is not included in this Docker image." if not tool.in_image else "The Docker image should include it."
+    return f"Install it with `{INSTALL_COMMAND} {tool.label}`, or manually: {tool.install}."
+
+
+def limit_output(output: str) -> str:
     try:
         cap = int(os.environ.get("OSINT_MAX_OUTPUT_CHARS") or DEFAULT_MAX_OUTPUT)
     except ValueError:
         cap = DEFAULT_MAX_OUTPUT
-    if cap <= 0 or len(text) <= cap:
-        return text
+    if cap <= 0 or len(output) <= cap:
+        return output
     return (
-        f"{text[:cap]}\n\n[Output truncated to {cap} of {len(text)} characters. "
+        f"{output[:cap]}\n\n[Output truncated to {cap} of {len(output)} characters. "
         "Narrow the search, or raise OSINT_MAX_OUTPUT_CHARS.]"
     )
 
 
-# Input checks
+# Running
 
-_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 # cmd.exe re-parses the command line of a .bat/.cmd wrapper, so these could end the argument or start a new command
 _BATCH_UNSAFE = re.compile(r'["&|<>^%!]')
 
-
-def _text(arguments: dict[str, Any], key: str, *, required: bool = True, max_length: int = 256) -> str | None:
-    value = arguments.get(key)
-    if value is None or (isinstance(value, str) and not value.strip()):
-        if required:
-            raise ToolError(f"'{key}' is required")
-        return None
-    if not isinstance(value, str):
-        raise ToolError(f"'{key}' must be a string")
-    return _clean(key, value, max_length)
-
-
-def _clean(key: str, value: str, max_length: int = 256) -> str:
-    value = value.strip()
-    if len(value) > max_length:
-        raise ToolError(f"'{key}' must be at most {max_length} characters")
-    if value.startswith("-"):
-        raise ToolError(f"'{key}' must not start with '-': the tool would read it as an option")
-    if _CONTROL_CHARS.search(value):
-        raise ToolError(f"'{key}' must not contain control characters")
-    return value
-
-
-def _int(arguments: dict[str, Any], key: str, low: int, high: int) -> int | None:
-    value = arguments.get(key)
-    if value is None:
-        return None
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise ToolError(f"'{key}' must be an integer")
-    if not low <= value <= high:
-        raise ToolError(f"'{key}' must be between {low} and {high}")
-    return value
-
-
-def _flag(arguments: dict[str, Any], key: str, default: bool) -> bool:
-    value = arguments.get(key)
-    if value is None:
-        return default
-    if not isinstance(value, bool):
-        raise ToolError(f"'{key}' must be true or false")
-    return value
-
-
-def _choice(arguments: dict[str, Any], key: str, choices: tuple[str, ...], default: str) -> str:
-    value = arguments.get(key)
-    if value is None:
-        return default
-    if value not in choices:
-        raise ToolError(f"'{key}' must be one of: {', '.join(choices)}")
-    return value
-
-
-# Running
 
 async def _execute(located: Located, arguments: list[str], cwd: str | None = None) -> process.Completed:
     if located.batch and any(_BATCH_UNSAFE.search(argument) for argument in arguments):
@@ -173,18 +125,18 @@ def _read_files(folder: str) -> str:
 # Handlers
 
 async def _sherlock(arguments: dict[str, Any], located: Located) -> str:
-    username = _text(arguments, "username")
-    timeout = _int(arguments, "timeout", 1, 600)
+    username = text(arguments, "username")
+    timeout = integer(arguments, "timeout", 1, 600)
     sites = arguments.get("sites") or []
     if not isinstance(sites, list) or not all(isinstance(site, str) for site in sites):
         raise ToolError("'sites' must be a list of site names")
-    output_format = _choice(arguments, "output_format", ("csv", "txt"), "csv")
+    output_format = choice(arguments, "output_format", ("csv", "txt"), "csv")
 
     options = [username, "--no-color", "--print-found"]
     if timeout:
         options += ["--timeout", str(timeout)]
     for site in sites:
-        options += ["--site", _clean("sites", site)]
+        options += ["--site", clean("sites", site)]
     if output_format == "csv":
         options += ["--csv", "--no-txt"]
     with tempfile.TemporaryDirectory(prefix="osint-sherlock-") as folder:
@@ -199,13 +151,13 @@ _HOLEHE_PROMO = ("Twitter : @palenath", "Github : https://github.com/megadose/ho
 
 
 async def _holehe(arguments: dict[str, Any], located: Located) -> str:
-    email = _text(arguments, "email")
+    email = text(arguments, "email")
     if "@" not in email:
         raise ToolError("'email' must be an email address")
-    timeout = _int(arguments, "timeout", 1, 600)
+    timeout = integer(arguments, "timeout", 1, 600)
 
     options = [email, "--no-color", "--no-clear"]
-    if _flag(arguments, "only_used", True):
+    if flag(arguments, "only_used", True):
         options.append("--only-used")
     if timeout:
         options += ["--timeout", str(timeout)]
@@ -221,8 +173,8 @@ SPIDERFOOT_USE_CASES = ("all", "footprint", "investigate", "passive")
 
 
 async def _spiderfoot(arguments: dict[str, Any], located: Located) -> str:
-    target = _text(arguments, "target")
-    use_case = _choice(arguments, "use_case", SPIDERFOOT_USE_CASES, "all")
+    target = text(arguments, "target")
+    use_case = choice(arguments, "use_case", SPIDERFOOT_USE_CASES, "all")
 
     done = await _execute(located, ["-s", target, "-u", use_case, "-o", "json", "-q"])
     if done.returncode != 0:
@@ -256,7 +208,7 @@ def _spiderfoot_events(output: str) -> dict[str, list[str]]:
 
 
 async def _ghunt(arguments: dict[str, Any], located: Located) -> str:
-    identifier = _text(arguments, "identifier")
+    identifier = text(arguments, "identifier")
     if identifier.isdigit():
         mode = "gaia"
     elif "@" in identifier:
@@ -283,13 +235,13 @@ async def _ghunt(arguments: dict[str, Any], located: Located) -> str:
 
 
 async def _maigret(arguments: dict[str, Any], located: Located) -> str:
-    username = _text(arguments, "username")
-    timeout = _int(arguments, "timeout", 1, 600)
+    username = text(arguments, "username")
+    timeout = integer(arguments, "timeout", 1, 600)
 
     options = [username, "--no-color", "--no-progressbar", "--json", "simple"]
     if timeout:
         options += ["--timeout", str(timeout)]
-    if _flag(arguments, "all_sites", False):
+    if flag(arguments, "all_sites", False):
         options.append("--all-sites")
     with tempfile.TemporaryDirectory(prefix="osint-maigret-") as folder:
         done = await _execute(located, [*options, "--folderoutput", folder], cwd=folder)
@@ -328,16 +280,16 @@ _SOURCES = re.compile(r"[A-Za-z0-9_-]+(,[A-Za-z0-9_-]+)*")
 
 
 async def _theharvester(arguments: dict[str, Any], located: Located) -> str:
-    domain = _text(arguments, "domain")
-    sources = _text(arguments, "sources", required=False) or "all"
+    target = text(arguments, "domain")
+    sources = text(arguments, "sources", required=False) or "all"
     if not _SOURCES.fullmatch(sources):
         raise ToolError("'sources' must be a comma-separated list of source names, or 'all'")
-    limit = _int(arguments, "limit", 1, 10_000) or 500
+    limit = integer(arguments, "limit", 1, 10_000) or 500
 
     with tempfile.TemporaryDirectory(prefix="osint-theharvester-") as folder:
         report = Path(folder, "report")
         done = await _execute(
-            located, ["-d", domain, "-b", sources, "-l", str(limit), "-q", "-f", str(report)], cwd=folder
+            located, ["-d", target, "-b", sources, "-l", str(limit), "-q", "-f", str(report)], cwd=folder
         )
         if done.returncode != 0:
             raise _failure("theHarvester", done)
@@ -352,8 +304,8 @@ _BLOCK_ART = set("▄▀█▌▐░▒▓ ")
 
 
 async def _blackbird(arguments: dict[str, Any], located: Located) -> str:
-    username = _text(arguments, "username")
-    timeout = _int(arguments, "timeout", 1, 600)
+    username = text(arguments, "username")
+    timeout = integer(arguments, "timeout", 1, 600)
 
     options = ["-u", username]
     if timeout:
@@ -371,7 +323,7 @@ _PHONE_NUMBER = re.compile(r"\+?[0-9][0-9 ().-]{4,30}")
 
 
 async def _phoneinfoga(arguments: dict[str, Any], located: Located) -> str:
-    number = _text(arguments, "number", max_length=32)
+    number = text(arguments, "number", max_length=32)
     if not _PHONE_NUMBER.fullmatch(number):
         raise ToolError("'number' must be a phone number in international format, e.g. +14155552671")
 
@@ -384,7 +336,7 @@ async def _phoneinfoga(arguments: dict[str, Any], located: Located) -> str:
 
 
 async def _exiftool(arguments: dict[str, Any], located: Located) -> str:
-    path = Path(_text(arguments, "file_path", max_length=4096)).expanduser()
+    path = Path(text(arguments, "file_path", max_length=4096)).expanduser()
     if not path.is_absolute():
         raise ToolError("'file_path' must be an absolute path")
     if not path.is_file():
@@ -408,6 +360,102 @@ async def _exiftool(arguments: dict[str, Any], located: Located) -> str:
     return _json(data[0] if isinstance(data, list) and len(data) == 1 else data)
 
 
+async def _subfinder(arguments: dict[str, Any], located: Located) -> str:
+    target = domain(arguments, "domain")
+    timeout = integer(arguments, "timeout", 1, 600)
+
+    options = ["-d", target, "-silent", "-oJ", "-cs", "-nc"]
+    if flag(arguments, "all_sources", False):
+        options.append("-all")
+    if timeout:
+        options += ["-timeout", str(timeout)]
+    with tempfile.TemporaryDirectory(prefix="osint-subfinder-") as folder:
+        done = await _execute(located, options, cwd=folder)
+    if done.returncode != 0:
+        raise _failure("subfinder", done)
+    hosts: dict[str, set[str]] = {}
+    for line in done.stdout.splitlines():
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(record, dict) and record.get("host"):
+            sources = record.get("sources") or ([record["source"]] if record.get("source") else [])
+            hosts.setdefault(str(record["host"]).lower(), set()).update(map(str, sources))
+    if not hosts:
+        return f"subfinder found no subdomains of {target}."
+    return _json({"domain": target, "subdomains": {host: sorted(hosts[host]) for host in sorted(hosts)}})
+
+
+async def _dnstwist(arguments: dict[str, Any], located: Located) -> str:
+    target = domain(arguments, "domain")
+    registered_only = flag(arguments, "registered_only", True)
+
+    options = ["--format", "json"]
+    if registered_only:
+        options.append("--registered")
+    done = await _execute(located, [*options, target])
+    if done.returncode != 0:
+        raise _failure("dnstwist", done)
+    try:
+        entries = json.loads(done.stdout)
+    except ValueError:
+        return done.stdout.strip()
+    lookalikes = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict) or entry.get("fuzzer") == "*original":
+            continue
+        lookalike = {"domain": entry.get("domain"), "fuzzer": entry.get("fuzzer")}
+        for key in ("dns_a", "dns_aaaa", "dns_mx", "dns_ns"):
+            if entry.get(key):
+                lookalike[key.removeprefix("dns_")] = entry[key]
+        lookalikes.append(lookalike)
+    if not lookalikes:
+        return f"dnstwist found no {'registered ' if registered_only else ''}lookalikes of {target}."
+    return _json({"domain": target, "lookalikes": lookalikes})
+
+
+DNSRECON_SCANS = ("std", "srv", "axfr", "crt", "zonewalk")
+
+
+async def _dnsrecon(arguments: dict[str, Any], located: Located) -> str:
+    target = domain(arguments, "domain")
+    scan = choice(arguments, "scan_type", DNSRECON_SCANS, "std")
+
+    with tempfile.TemporaryDirectory(prefix="osint-dnsrecon-") as folder:
+        report = Path(folder, "report.json")
+        done = await _execute(located, ["-d", target, "-t", scan, "-j", str(report)], cwd=folder)
+        if done.returncode != 0:
+            raise _failure("dnsrecon", done)
+        if report.is_file():
+            records = json.loads(report.read_text(encoding="utf-8"))
+            records = [record for record in records if not (isinstance(record, dict) and record.get("type") == "ScanInfo")]
+            return _json(records) if records else f"dnsrecon found no records for {target}."
+    return done.stdout.strip()
+
+
+async def _status(arguments: dict[str, Any], located: Located | None = None) -> str:
+    ready, missing = [], []
+    for tool in TOOLS:
+        if tool.requires is None:
+            ready.append(tool.name)
+            continue
+        found, reason = locate(tool.requires)
+        if found:
+            ready.append(tool.name)
+        else:
+            missing.append(f"- {tool.name} ({tool.label}): {reason}. {_how_to_install(tool)}")
+    report = [f"Available ({len(ready)}): {', '.join(ready)}."]
+    if missing:
+        report.append(f"Not installed ({len(missing)}):\n" + "\n".join(missing))
+        if not IN_CONTAINER:
+            report.append(
+                f"The user can install everything that is missing with `{INSTALL_COMMAND}`, then restart the MCP "
+                f"client so it sees the new tools. Details: {INSTALL_GUIDE}"
+            )
+    return "\n\n".join(report)
+
+
 def _timeout(default: int) -> dict[str, Any]:
     return {
         "type": "integer",
@@ -418,6 +466,7 @@ def _timeout(default: int) -> dict[str, Any]:
 
 
 _USERNAME = {"type": "string", "description": "Username to search for"}
+_DOMAIN = {"type": "string", "description": "Domain name, e.g. example.com"}
 
 TOOLS: tuple[Tool, ...] = (
     Tool(
@@ -493,7 +542,7 @@ TOOLS: tuple[Tool, ...] = (
             },
         },
         required=("target",),
-        requires=Script("sf.py", "OSINT_SPIDERFOOT_DIR", "OSINT_SPIDERFOOT_PYTHON"),
+        requires=Script("sf.py", "OSINT_SPIDERFOOT_DIR", "OSINT_SPIDERFOOT_PYTHON", "spiderfoot"),
         install=(
             "git clone https://github.com/smicallef/spiderfoot, install its requirements.txt "
             "and set OSINT_SPIDERFOOT_DIR to the folder"
@@ -577,7 +626,7 @@ TOOLS: tuple[Tool, ...] = (
         description="Search a username on the 700+ sites of the WhatsMyName list (Blackbird).",
         properties={"username": _USERNAME, "timeout": _timeout(30)},
         required=("username",),
-        requires=Script("blackbird.py", "OSINT_BLACKBIRD_DIR", "OSINT_BLACKBIRD_PYTHON"),
+        requires=Script("blackbird.py", "OSINT_BLACKBIRD_DIR", "OSINT_BLACKBIRD_PYTHON", "blackbird"),
         install=(
             "git clone https://github.com/antoniaci/blackbird, install its requirements.txt "
             "and set OSINT_BLACKBIRD_DIR to the folder"
@@ -631,6 +680,168 @@ TOOLS: tuple[Tool, ...] = (
         install="install ExifTool (https://exiftool.org or a package manager) and put exiftool on PATH (or set OSINT_EXIFTOOL)",
         probe=("-ver",),
         run=_exiftool,
+        open_world=False,
+    ),
+    Tool(
+        name="subfinder_subdomain_search",
+        label="subfinder",
+        title="subfinder subdomain search",
+        description=(
+            "Find subdomains of a domain in passive sources such as certificate logs and DNS datasets (subfinder). "
+            "Returns each subdomain with the sources that reported it."
+        ),
+        properties={
+            "domain": _DOMAIN,
+            "all_sources": {
+                "type": "boolean",
+                "description": "Query every source instead of subfinder's fast default set (slower)",
+            },
+            "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 600,
+                "description": "Seconds to wait for each source (subfinder's default: 30)",
+            },
+        },
+        required=("domain",),
+        requires=Program(("subfinder",), "OSINT_SUBFINDER"),
+        install=(
+            "download a release from https://github.com/projectdiscovery/subfinder/releases "
+            "and put subfinder on PATH (or set OSINT_SUBFINDER)"
+        ),
+        probe=("-version",),
+        run=_subfinder,
+    ),
+    Tool(
+        name="dnstwist_lookalike_domains",
+        label="dnstwist",
+        title="dnstwist lookalike domains",
+        description=(
+            "Generate lookalike domains (typos, homoglyphs, other TLDs) for a domain and check which are "
+            "registered, with their A, MX and NS records (dnstwist). Useful to spot phishing domains."
+        ),
+        properties={
+            "domain": _DOMAIN,
+            "registered_only": {
+                "type": "boolean",
+                "description": "Return only lookalikes that are registered (default: true)",
+            },
+        },
+        required=("domain",),
+        requires=Program(("dnstwist",), "OSINT_DNSTWIST"),
+        install="uv tool install \"dnstwist[full]\"",
+        probe=("--help",),
+        run=_dnstwist,
+    ),
+    Tool(
+        name="dnsrecon_domain_scan",
+        label="dnsrecon",
+        title="dnsrecon DNS reconnaissance",
+        description=(
+            "DNS reconnaissance of a domain with dnsrecon: SOA, NS, MX, A, AAAA and SRV records, zone transfer "
+            "attempts, DNSSEC zone walking and certificate-log names, depending on scan_type."
+        ),
+        properties={
+            "domain": _DOMAIN,
+            "scan_type": {
+                "type": "string",
+                "enum": list(DNSRECON_SCANS),
+                "description": (
+                    "std (default): standard records and a zone transfer attempt; srv: common SRV records; "
+                    "axfr: zone transfer against every name server; crt: names from crt.sh; zonewalk: DNSSEC NSEC walk"
+                ),
+            },
+        },
+        required=("domain",),
+        requires=Program(("dnsrecon",), "OSINT_DNSRECON"),
+        install="uv tool install git+https://github.com/darkoperator/dnsrecon",
+        probe=("--help",),
+        run=_dnsrecon,
+    ),
+    Tool(
+        name="whois_lookup",
+        label="whois",
+        title="WHOIS lookup",
+        description=(
+            "Registration data for a domain, IP address, network or AS number: registrar, dates, name servers, "
+            "holder and contacts where public. Uses RDAP, or WHOIS for registries without RDAP."
+        ),
+        properties={
+            "query": {"type": "string", "description": "Domain (example.com), IP address, CIDR network or AS number (AS13335)"},
+        },
+        required=("query",),
+        run=lookups.whois_lookup,
+    ),
+    Tool(
+        name="dns_lookup",
+        label="dns",
+        title="DNS lookup",
+        description=(
+            "DNS records of a name (A, AAAA, CNAME, MX, NS, TXT, SOA, CAA by default), or the reverse name "
+            "of an IP address. Asks public DNS-over-HTTPS resolvers."
+        ),
+        properties={
+            "name": {"type": "string", "description": "Domain name, or an IP address for a reverse (PTR) lookup"},
+            "types": {
+                "type": "array",
+                "items": {"type": "string", "enum": list(lookups.DNS_TYPES)},
+                "description": "Record types to fetch",
+            },
+        },
+        required=("name",),
+        run=lookups.dns_lookup,
+    ),
+    Tool(
+        name="crtsh_certificate_search",
+        label="crtsh",
+        title="Certificate transparency search",
+        description=(
+            "Host names (often unlisted subdomains) and email addresses found in TLS certificates issued "
+            "for a domain, from the crt.sh certificate transparency log search."
+        ),
+        properties={
+            "domain": _DOMAIN,
+            "include_expired": {
+                "type": "boolean",
+                "description": "Include expired certificates (default: true)",
+            },
+        },
+        required=("domain",),
+        run=lookups.crtsh_certificate_search,
+    ),
+    Tool(
+        name="wayback_snapshots",
+        label="wayback",
+        title="Wayback Machine snapshots",
+        description=(
+            "Archived snapshots of a URL, a site or a domain in the Internet Archive's Wayback Machine, "
+            "newest first, with links to view each one."
+        ),
+        properties={
+            "url": {"type": "string", "description": "URL or domain, e.g. example.com/about"},
+            "match": {
+                "type": "string",
+                "enum": ["exact", "prefix", "host", "domain"],
+                "description": "exact URL (default), every URL under it (prefix), the whole host, or the domain with subdomains",
+            },
+            "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "description": "Number of snapshots (default: 50)"},
+            "from": {"type": "string", "description": "Earliest date, e.g. 2019 or 20190131"},
+            "to": {"type": "string", "description": "Latest date, e.g. 2021 or 20211231"},
+        },
+        required=("url",),
+        run=lookups.wayback_snapshots,
+    ),
+    Tool(
+        name="osint_toolbox_status",
+        label="status",
+        title="Toolbox status",
+        description=(
+            "Which OSINT tools this server can run on this machine, and how to install the missing ones. "
+            "Call it when a tool you need is not available."
+        ),
+        properties={},
+        required=(),
+        run=_status,
         open_world=False,
     ),
 )

@@ -10,6 +10,7 @@ MODERN_META = {
     "io.modelcontextprotocol/protocolVersion": "2026-07-28",
     "io.modelcontextprotocol/clientCapabilities": {},
 }
+BUILT_IN = ["whois_lookup", "dns_lookup", "crtsh_certificate_search", "wayback_snapshots", "osint_toolbox_status"]
 
 
 def call(method, params=None):
@@ -66,7 +67,7 @@ def test_modern_tools_list():
     result = call("tools/list", {"_meta": MODERN_META})
     assert result["resultType"] == "complete"
     assert result["ttlMs"] == 0
-    assert result["tools"] == []
+    assert [tool["name"] for tool in result["tools"]] == BUILT_IN
 
 
 def test_unsupported_version_names_every_supported_one():
@@ -92,15 +93,15 @@ def test_unknown_method(params):
 
 # Tools
 
-def test_tools_list_shows_only_installed_tools(isolated_tools):
+def test_tools_list_shows_installed_and_built_in_tools(isolated_tools):
     fake_executable(isolated_tools, "holehe")
     names = [tool["name"] for tool in call("tools/list")["tools"]]
-    assert names == ["holehe_email_search"]
+    assert names == ["holehe_email_search", *BUILT_IN]
 
 
 def test_tool_definition(isolated_tools):
     fake_executable(isolated_tools, "exiftool")
-    (tool,) = call("tools/list")["tools"]
+    (tool,) = [tool for tool in call("tools/list")["tools"] if tool["name"] == "exiftool_metadata"]
     assert tool["inputSchema"]["required"] == ["file_path"]
     assert tool["annotations"]["readOnlyHint"] is True
     assert tool["annotations"]["openWorldHint"] is False

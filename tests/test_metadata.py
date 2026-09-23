@@ -39,7 +39,11 @@ def test_bundle_manifest_lists_every_tool():
 
 
 def test_documented_variables_are_the_ones_the_server_reads():
-    read = {getattr(tool.requires, "env", None) or tool.requires.dir_env for tool in TOOLS_BY_NAME.values()}
+    read = {
+        getattr(tool.requires, "env", None) or tool.requires.dir_env
+        for tool in TOOLS_BY_NAME.values()
+        if tool.requires is not None
+    }
     documented = {variable["name"] for variable in SERVER_JSON["packages"][0]["environmentVariables"]}
     assert documented <= read
     assert set(MANIFEST["server"]["mcp_config"]["env"]) <= read

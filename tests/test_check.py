@@ -20,7 +20,7 @@ def fake_tools(monkeypatch, missing=(), failing=()):
 def test_everything_ready(monkeypatch, capsys):
     fake_tools(monkeypatch)
     assert asyncio.run(check.run()) == 0
-    assert "9 of 9 tools ready." in capsys.readouterr().out
+    assert "12 of 12 tools ready." in capsys.readouterr().out
 
 
 def test_missing_and_broken_tools(monkeypatch, capsys):
@@ -29,7 +29,7 @@ def test_missing_and_broken_tools(monkeypatch, capsys):
     output = capsys.readouterr().out
     assert "missing  spiderfoot" in output
     assert "broken   sherlock" in output and "ImportError: boom" in output
-    assert "7 of 9 tools ready." in output
+    assert "10 of 12 tools ready." in output
 
 
 def test_docker_image_does_not_count_tools_left_out_of_it(monkeypatch, capsys):
@@ -38,4 +38,4 @@ def test_docker_image_does_not_count_tools_left_out_of_it(monkeypatch, capsys):
     assert asyncio.run(check.run()) == 0
     output = capsys.readouterr().out
     assert "absent   blackbird" in output
-    assert "8 of 8 tools ready." in output
+    assert "11 of 11 tools ready." in output

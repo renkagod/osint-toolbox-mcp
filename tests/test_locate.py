@@ -7,7 +7,7 @@ from conftest import REAL_SEARCH_PATH, fake_executable
 from osint_toolbox_mcp.locate import Program, Script, locate
 
 SHERLOCK = Program(("sherlock",), "OSINT_SHERLOCK")
-SPIDERFOOT = Script("sf.py", "OSINT_SPIDERFOOT_DIR", "OSINT_SPIDERFOOT_PYTHON")
+SPIDERFOOT = Script("sf.py", "OSINT_SPIDERFOOT_DIR", "OSINT_SPIDERFOOT_PYTHON", "spiderfoot")
 
 
 def test_program_on_the_search_path(isolated_tools):
@@ -93,4 +93,19 @@ def test_search_path_adds_user_install_folders(monkeypatch, tmp_path):
     monkeypatch.delenv("PIPX_BIN_DIR", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     folders = REAL_SEARCH_PATH().split(os.pathsep)
-    assert folders[:3] == [str(tmp_path / "a"), str(tmp_path / "uv-bin"), str(tmp_path / ".local" / "bin")]
+    toolbox = tmp_path / "toolbox"
+    assert folders[:5] == [
+        str(tmp_path / "a"),
+        str(toolbox / "bin"),
+        str(toolbox / "exiftool"),
+        str(tmp_path / "uv-bin"),
+        str(tmp_path / ".local" / "bin"),
+    ]
+
+
+def test_installed_checkout_is_found_without_a_variable(tmp_path):
+    checkout = tmp_path / "toolbox" / "spiderfoot"
+    checkout.mkdir(parents=True)
+    (checkout / "sf.py").write_text("")
+    located, _ = locate(SPIDERFOOT)
+    assert located.command[-1] == str(checkout / "sf.py")

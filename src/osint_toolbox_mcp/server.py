@@ -10,7 +10,7 @@ import sys
 import threading
 from typing import Any
 
-from . import __version__, check
+from . import __version__, check, install
 from .tools import TOOLS, TOOLS_BY_NAME, ToolError, available_tools, call_tool
 
 SERVER_INFO = {"name": "osint-toolbox-mcp", "title": "OSINT Toolbox", "version": __version__}
@@ -277,7 +277,7 @@ def _log_tools() -> None:
     missing = [tool.label for tool in TOOLS if tool.label not in ready]
     message = f"osint-toolbox-mcp {__version__}: {len(ready)} of {len(TOOLS)} tools available"
     if missing:
-        message += f"; missing: {', '.join(missing)} (run `osint-toolbox-mcp --check`)"
+        message += f"; missing: {', '.join(missing)} (install them with `osint-toolbox-mcp --install`)"
     print(message, file=sys.stderr, flush=True)
 
 
@@ -285,16 +285,25 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="osint-toolbox-mcp",
         description=(
-            "MCP server (stdio) that lets AI agents run OSINT tools: Sherlock, Holehe, Maigret, GHunt, "
-            "theHarvester, SpiderFoot, Blackbird, PhoneInfoga and ExifTool."
+            "MCP server (stdio) that lets AI agents run OSINT tools: Sherlock, Maigret, Blackbird, Holehe, GHunt, "
+            "theHarvester, SpiderFoot, subfinder, dnstwist, dnsrecon, PhoneInfoga, ExifTool, plus built-in WHOIS, "
+            "DNS, certificate transparency and Wayback Machine lookups."
         ),
     )
     parser.add_argument("--check", action="store_true", help="show which tools are installed and working, then exit")
+    parser.add_argument(
+        "--install",
+        nargs="*",
+        metavar="TOOL",
+        help="install the missing tools (all of them, or the ones named, e.g. sherlock maigret), then check them",
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
 
-    if args.check:
+    if args.check or args.install is not None:
         sys.stdout.reconfigure(errors="replace")
+        if args.install is not None:
+            raise SystemExit(asyncio.run(install.run(args.install)))
         raise SystemExit(asyncio.run(check.run()))
 
     # MCP messages are UTF-8 lines ending in \n, whatever the platform's defaults are

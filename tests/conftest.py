@@ -16,6 +16,7 @@ def isolated_tools(monkeypatch, tmp_path):
     for name in list(os.environ):
         if name.startswith("OSINT_"):
             monkeypatch.delenv(name)
+    monkeypatch.setenv("OSINT_TOOLBOX_HOME", str(tmp_path / "toolbox"))
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     monkeypatch.setattr(locate, "search_path", lambda: str(bin_dir))

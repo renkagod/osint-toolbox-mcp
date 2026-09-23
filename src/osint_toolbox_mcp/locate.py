@@ -24,6 +24,7 @@ class Script:
     script: str
     dir_env: str
     python_env: str
+    folder: str  # where `--install` puts the checkout, inside toolbox_home()
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,20 @@ def locate(requirement: Program | Script) -> tuple[Located | None, str]:
     if isinstance(requirement, Program):
         return _locate_program(requirement)
     return _locate_script(requirement)
+
+
+def toolbox_home() -> Path:
+    """Where `--install` puts checkouts and downloaded programs; OSINT_TOOLBOX_HOME overrides it."""
+    custom = _setting("OSINT_TOOLBOX_HOME")
+    if custom:
+        return Path(custom).expanduser()
+    if sys.platform == "win32":
+        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
+    return base / "osint-toolbox-mcp"
 
 
 def _setting(name: str) -> str:
@@ -68,7 +83,10 @@ def _locate_program(program: Program) -> tuple[Located | None, str]:
 def _locate_script(script: Script) -> tuple[Located | None, str]:
     folder = _setting(script.dir_env)
     if not folder:
-        return None, f"{script.dir_env} is not set"
+        installed = toolbox_home() / script.folder
+        if not (installed / script.script).is_file():
+            return None, f"{script.dir_env} is not set"
+        folder = str(installed)
     root = Path(folder).expanduser()
     entry = root / script.script
     if not entry.is_file():
@@ -113,9 +131,16 @@ def _without_own_environment(path: str) -> str:
 
 
 def search_path() -> str:
-    """PATH plus the folders `uv tool` and `pipx` install into, which GUI clients often leave out of PATH."""
+    """PATH, then where `--install`, `uv tool` and `pipx` put programs: GUI clients often leave those out of PATH."""
     folders = [folder for folder in os.environ.get("PATH", "").split(os.pathsep) if folder]
-    extra = [os.environ.get("UV_TOOL_BIN_DIR"), os.environ.get("PIPX_BIN_DIR"), str(Path.home() / ".local" / "bin")]
+    home = toolbox_home()
+    extra = [
+        str(home / "bin"),
+        str(home / "exiftool"),
+        os.environ.get("UV_TOOL_BIN_DIR"),
+        os.environ.get("PIPX_BIN_DIR"),
+        str(Path.home() / ".local" / "bin"),
+    ]
     if sys.platform != "win32":
         extra += ["/opt/homebrew/bin", "/usr/local/bin"]
     for folder in extra:
