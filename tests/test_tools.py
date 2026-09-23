@@ -185,17 +185,29 @@ def test_spiderfoot_groups_events(runner):
         {"type": "Internet Name", "data": "www.example.com", "module": "sfp_b"},
         {"type": "IP Address", "data": "93.184.216.34", "module": "sfp_a"},
     ]
-    runner.respond = lambda command, cwd: Completed(0, json.dumps(events), "")
+    # What sf.py really prints: the scan process's events first, the main process's brackets last
+    output = ",\n".join(json.dumps(event) for event in events) + "[]\n"
+    runner.respond = lambda command, cwd: Completed(0, output, "")
     located = Located(("python", "sf.py"), cwd="/opt/spiderfoot")
     result = run_tool("spiderfoot_scan", {"target": "example.com", "use_case": "passive"}, located)
     assert json.loads(result) == {"Internet Name": ["www.example.com"], "IP Address": ["93.184.216.34"]}
     assert runner.commands[-1] == ["python", "sf.py", "-s", "example.com", "-u", "passive", "-o", "json", "-q"]
 
 
+def test_spiderfoot_reads_a_well_formed_array_too(runner):
+    runner.respond = lambda command, cwd: Completed(0, '[{"type": "Country Name", "data": "Spain"}]', "")
+    assert json.loads(run_tool("spiderfoot_scan", {"target": "example.com"})) == {"Country Name": ["Spain"]}
+    assert option_value(runner.arguments, "-u") == "all"
+
+
 def test_spiderfoot_keeps_output_it_cannot_parse(runner):
     runner.respond = lambda command, cwd: Completed(0, "[{broken", "")
     assert run_tool("spiderfoot_scan", {"target": "example.com"}) == "[{broken"
-    assert option_value(runner.arguments, "-u") == "all"
+
+
+def test_spiderfoot_found_nothing(runner):
+    runner.respond = lambda command, cwd: Completed(0, "[]\n", "")
+    assert run_tool("spiderfoot_scan", {"target": "example.com"}) == "SpiderFoot found nothing for 'example.com'."
 
 
 def test_spiderfoot_rejects_unknown_use_case(runner):

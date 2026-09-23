@@ -227,21 +227,30 @@ async def _spiderfoot(arguments: dict[str, Any], located: Located) -> str:
     if done.returncode != 0:
         raise _failure("SpiderFoot", done)
     events = _spiderfoot_events(done.stdout)
-    return done.stdout.strip() if events is None else _json(events)
+    if events:
+        return _json(events)
+    output = done.stdout.strip()
+    return output if output.strip("[] ") else f"SpiderFoot found nothing for {target!r}."
 
 
-def _spiderfoot_events(output: str) -> dict[str, list[str]] | None:
-    """Event data grouped by type: SpiderFoot's raw list repeats the same finding for every module that saw it."""
-    try:
-        events = json.loads(output)
-    except ValueError:
-        return None
-    if not isinstance(events, list):
-        return None
+def _spiderfoot_events(output: str) -> dict[str, list[str]]:
+    """Event data grouped by type, without the duplicates SpiderFoot reports once per module.
+
+    The events are read one object at a time: SpiderFoot's scan process prints them while the main
+    process prints the enclosing brackets, so the array comes out as `{...},\\n{...}[]`.
+    """
+    decoder = json.JSONDecoder()
     grouped: dict[str, dict[str, None]] = {}
-    for event in events:
-        if isinstance(event, dict) and event.get("data") is not None:
-            grouped.setdefault(str(event.get("type")), {})[str(event["data"])] = None
+    position = output.find("{")
+    while position != -1:
+        try:
+            event, position = decoder.raw_decode(output, position)
+        except ValueError:
+            position += 1
+        else:
+            if isinstance(event, dict) and event.get("data") is not None:
+                grouped.setdefault(str(event.get("type")), {})[str(event["data"])] = None
+        position = output.find("{", position)
     return {kind: list(values) for kind, values in grouped.items()}
 
 
