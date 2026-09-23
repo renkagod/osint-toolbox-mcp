@@ -3,9 +3,9 @@
   "manifest_version": "0.4",
   "name": "osint-toolbox-mcp",
   "display_name": "OSINT Toolbox",
-  "version": "1.0.1",
-  "description": "Run Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot, Blackbird, PhoneInfoga and ExifTool locally.",
-  "long_description": "Lets the assistant run classic OSINT tools on your machine: username searches (Sherlock, Maigret, Blackbird), email checks (Holehe, GHunt), domain reconnaissance (theHarvester, SpiderFoot), phone number scans (PhoneInfoga) and file metadata (ExifTool). No API keys are needed.\n\nThe tools themselves are installed separately; only the ones found on your machine are offered. See the [installation guide](https://github.com/renkagod/osint-toolbox-mcp#install-the-tools).",
+  "version": "1.1.0",
+  "description": "Run Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot, subfinder and more OSINT tools locally.",
+  "long_description": "Lets the assistant run classic OSINT tools on your machine: username searches (Sherlock, Maigret, Blackbird), email checks (Holehe, GHunt), domain reconnaissance (theHarvester, SpiderFoot, subfinder, dnstwist, dnsrecon), phone number scans (PhoneInfoga) and file metadata (ExifTool). WHOIS, DNS, certificate transparency and Wayback Machine lookups are built in. No API keys are needed.\n\nInstall the tools with `uvx osint-toolbox-mcp --install`; only the ones found on your machine are offered. See the [installation guide](https://github.com/renkagod/osint-toolbox-mcp#install-the-tools).",
   "author": {
     "name": "renkagod",
     "url": "https://github.com/renkagod"
@@ -23,7 +23,12 @@
     "entry_point": "src/main.py",
     "mcp_config": {
       "command": "uv",
-      "args": ["run", "--directory", "${__dirname}", "src/main.py"],
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "src/main.py"
+      ],
       "env": {
         "OSINT_SPIDERFOOT_DIR": "${user_config.spiderfoot_dir}",
         "OSINT_BLACKBIRD_DIR": "${user_config.blackbird_dir}",
@@ -32,20 +37,95 @@
     }
   },
   "tools": [
-    { "name": "sherlock_username_search", "description": "Find accounts that use a username on 400+ sites (Sherlock)" },
-    { "name": "holehe_email_search", "description": "Check which of about 120 sites have an account for an email address (Holehe)" },
-    { "name": "spiderfoot_scan", "description": "Run a SpiderFoot scan of a domain, IP, email, phone number, username or name" },
-    { "name": "ghunt_google_search", "description": "Look up a Google account by email address or Gaia ID (GHunt)" },
-    { "name": "maigret_username_search", "description": "Search a username on up to 3000+ sites and extract profile data (Maigret)" },
-    { "name": "theharvester_domain_search", "description": "Collect emails, subdomains, hosts and IPs for a domain (theHarvester)" },
-    { "name": "blackbird_username_search", "description": "Search a username on the 700+ sites of the WhatsMyName list (Blackbird)" },
-    { "name": "phoneinfoga_scan", "description": "Scan a phone number: country, carrier, formats and search queries (PhoneInfoga)" },
-    { "name": "exiftool_metadata", "description": "Read metadata of a local photo, video or document (ExifTool)" }
+    {
+      "name": "sherlock_username_search",
+      "description": "Find accounts that use a username on 400+ sites (Sherlock)"
+    },
+    {
+      "name": "holehe_email_search",
+      "description": "Check which of about 120 sites have an account for an email address (Holehe)"
+    },
+    {
+      "name": "spiderfoot_scan",
+      "description": "Run a SpiderFoot scan of a domain, IP, email, phone number, username or name"
+    },
+    {
+      "name": "ghunt_google_search",
+      "description": "Look up a Google account by email address or Gaia ID (GHunt)"
+    },
+    {
+      "name": "maigret_username_search",
+      "description": "Search a username on up to 3000+ sites and extract profile data (Maigret)"
+    },
+    {
+      "name": "theharvester_domain_search",
+      "description": "Collect emails, subdomains, hosts and IPs for a domain (theHarvester)"
+    },
+    {
+      "name": "blackbird_username_search",
+      "description": "Search a username on the 700+ sites of the WhatsMyName list (Blackbird)"
+    },
+    {
+      "name": "phoneinfoga_scan",
+      "description": "Scan a phone number: country, carrier, formats and search queries (PhoneInfoga)"
+    },
+    {
+      "name": "exiftool_metadata",
+      "description": "Read metadata of a local photo, video or document (ExifTool)"
+    },
+    {
+      "name": "subfinder_subdomain_search",
+      "description": "Find subdomains in passive sources (subfinder)"
+    },
+    {
+      "name": "dnstwist_lookalike_domains",
+      "description": "Find registered lookalike domains of a domain (dnstwist)"
+    },
+    {
+      "name": "dnsrecon_domain_scan",
+      "description": "DNS reconnaissance: records, zone transfer, zone walk (dnsrecon)"
+    },
+    {
+      "name": "whois_lookup",
+      "description": "Registration data for a domain, IP address or AS number (RDAP/WHOIS)"
+    },
+    {
+      "name": "dns_lookup",
+      "description": "DNS records of a name, or the reverse name of an IP address"
+    },
+    {
+      "name": "crtsh_certificate_search",
+      "description": "Host names and emails in certificates issued for a domain (crt.sh)"
+    },
+    {
+      "name": "wayback_snapshots",
+      "description": "Archived snapshots of a URL or site in the Wayback Machine"
+    },
+    {
+      "name": "osint_toolbox_status",
+      "description": "Which tools are installed, and how to install the missing ones"
+    }
   ],
-  "keywords": ["osint", "reconnaissance", "sherlock", "maigret", "holehe", "ghunt", "theharvester", "spiderfoot", "blackbird", "phoneinfoga", "exiftool"],
+  "keywords": [
+    "osint",
+    "reconnaissance",
+    "sherlock",
+    "maigret",
+    "holehe",
+    "ghunt",
+    "theharvester",
+    "spiderfoot",
+    "blackbird",
+    "phoneinfoga",
+    "exiftool"
+  ],
   "license": "MIT",
   "compatibility": {
-    "platforms": ["darwin", "win32", "linux"],
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
     "runtimes": {
       "python": ">=3.10"
     }

@@ -1,6 +1,6 @@
 # osint-toolbox-mcp
 
-An MCP server that lets AI agents run classic OSINT tools on your own machine: Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot, Blackbird, PhoneInfoga and ExifTool. No API keys and no cloud service in between: the tools run locally and query public sources directly.
+An MCP server that lets AI agents run classic OSINT tools on your own machine: Sherlock, Maigret, Blackbird, Holehe, GHunt, theHarvester, SpiderFoot, subfinder, dnstwist, dnsrecon, PhoneInfoga and ExifTool, plus built-in WHOIS, DNS, certificate transparency and Wayback Machine lookups. No API keys and no cloud service in between: the tools run locally and query public sources directly.
 
 [![CI](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/osint-toolbox-mcp?logo=pypi&logoColor=white)](https://pypi.org/project/osint-toolbox-mcp/)
@@ -25,6 +25,14 @@ Ask your assistant "which sites have an account for jane@example.com?" or "what 
 | `spiderfoot_scan` | domain, IP, email, phone, username, person name... | findings grouped by type | SpiderFoot checkout |
 | `phoneinfoga_scan` | phone number | country, number formats, carrier (with an API key), search queries | PhoneInfoga |
 | `exiftool_metadata` | path to a local file | GPS coordinates, camera, author, software, timestamps | ExifTool |
+| `subfinder_subdomain_search` | domain | subdomains from passive sources, with the sources that reported them | subfinder |
+| `dnstwist_lookalike_domains` | domain | registered lookalike domains (typos, homoglyphs, other TLDs) with their A, MX and NS records | dnstwist |
+| `dnsrecon_domain_scan` | domain | DNS records, zone transfer attempts, DNSSEC zone walking | dnsrecon |
+| `whois_lookup` | domain, IP address, network or AS number | registrar, dates, name servers, holder and contacts where public (RDAP, or WHOIS) | built in |
+| `dns_lookup` | domain name or IP address | A, AAAA, CNAME, MX, NS, TXT, SOA, CAA records, or the reverse name | built in |
+| `crtsh_certificate_search` | domain | host names and email addresses from TLS certificates issued for it (crt.sh) | built in |
+| `wayback_snapshots` | URL or domain | archived snapshots in the Wayback Machine, newest first | built in |
+| `osint_toolbox_status` | nothing | which tools are installed, and how to install the missing ones | built in |
 
 Only installed tools are offered to the agent. Runs take from seconds to half an hour (a full SpiderFoot scan); requests run in parallel and can be cancelled.
 
@@ -33,7 +41,7 @@ Only installed tools are offered to the agent. Runs take from seconds to half an
 Pick one:
 
 - **Docker**: every tool but Blackbird in one image, nothing else to install.
-- **uvx**: the server uses the tools installed on your machine.
+- **uvx**: one command installs the tools on your machine, without admin rights.
 
 ### Docker
 
@@ -60,10 +68,10 @@ Files for ExifTool, the GHunt login, API keys and proxies are covered in [Docker
 
 ### uvx
 
-Install [uv](https://docs.astral.sh/uv/), [install the tools](#install-the-tools) you want and check what the server finds:
+Install [uv](https://docs.astral.sh/uv/), then install the tools. This installs everything that is missing and checks that each tool starts; see [Install the tools](#install-the-tools) for what it does:
 
 ```
-uvx osint-toolbox-mcp --check
+uvx osint-toolbox-mcp --install
 ```
 
 Add the server to your client:
@@ -85,7 +93,7 @@ To run the latest code from `main` instead of a release, use `uvx --from git+htt
 
 One-click install:
 
-| Client | Docker (eight tools) | uvx (your tools) |
+| Client | Docker (all but Blackbird) | uvx (your tools) |
 |---|---|---|
 | Cursor | [![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=osint-toolbox&config=eyJjb21tYW5kIjoiZG9ja2VyIiwiYXJncyI6WyJydW4iLCItaSIsIi0tcm0iLCJnaGNyLmlvL3JlbmthZ29kL29zaW50LXRvb2xib3gtbWNwIl19) | [![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=osint-toolbox&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJvc2ludC10b29sYm94LW1jcCJdfQ%3D%3D) |
 | VS Code | [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=osint-toolbox&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-i%22%2C%22--rm%22%2C%22ghcr.io%2Frenkagod%2Fosint-toolbox-mcp%22%5D%7D) | [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=osint-toolbox&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22osint-toolbox-mcp%22%5D%7D) |
@@ -235,7 +243,23 @@ mcpServers:
 
 ## Install the tools
 
-Skip this if you use Docker, unless you want Blackbird. Otherwise install any subset. Put each Python tool in its own environment with `uv tool install` (or `pipx install`): their dependencies conflict with each other.
+Skip this if you use Docker, unless you want Blackbird.
+
+```
+uvx osint-toolbox-mcp --install
+```
+
+installs every tool that is missing, without admin rights, then checks that each one starts. `uvx osint-toolbox-mcp --install sherlock maigret` installs only the tools named. It needs [uv](https://docs.astral.sh/uv/) and:
+
+- puts each Python tool (Sherlock, Holehe, Maigret, GHunt, theHarvester, dnstwist, dnsrecon) in its own environment with `uv tool install`, on Python 3.12: their dependencies conflict with each other, and some have no builds for newer Pythons;
+- downloads SpiderFoot and Blackbird from GitHub, each with its own virtual environment;
+- downloads PhoneInfoga, subfinder and ExifTool and checks them against the checksums their authors publish. On macOS and Linux, ExifTool needs Perl, which those systems usually have.
+
+Checkouts and downloads go to `%LOCALAPPDATA%\osint-toolbox-mcp` on Windows, `~/Library/Application Support/osint-toolbox-mcp` on macOS and `~/.local/share/osint-toolbox-mcp` on Linux; set `OSINT_TOOLBOX_HOME` to use another folder. The server looks there by itself. GHunt still needs a one-time `ghunt login` afterwards.
+
+`uvx osint-toolbox-mcp --check` shows, at any time, every tool as `ok`, `missing` (with how to install it) or `broken` (found but fails to start). The agent can ask the same through the `osint_toolbox_status` tool.
+
+### Installing by hand
 
 | Tool | Install | Tested with |
 |---|---|---|
@@ -244,10 +268,15 @@ Skip this if you use Docker, unless you want Blackbird. Otherwise install any su
 | Maigret | `uv tool install maigret` | 0.6 |
 | GHunt | `uv tool install ghunt`, then `ghunt login` | 2.3.4 |
 | theHarvester | `uv tool install git+https://github.com/laramies/theHarvester` | 4.11.1 |
+| dnstwist | `uv tool install "dnstwist[full]"` | 20250130 |
+| dnsrecon | `uv tool install git+https://github.com/darkoperator/dnsrecon` | 1.6.3 |
+| subfinder | a binary from [its releases](https://github.com/projectdiscovery/subfinder/releases), on PATH | 2.16.0 |
 | PhoneInfoga | a binary from [its releases](https://github.com/sundowndev/phoneinfoga/releases), on PATH | 2.11.0 |
 | ExifTool | [exiftool.org](https://exiftool.org), `brew install exiftool` or `apt install libimage-exiftool-perl` | 13.59 |
 | SpiderFoot | a checkout, see below | commit `0f815a2` |
 | Blackbird | a checkout, see below | commit `b455050` |
+
+If a Python tool fails to build on your default Python, add `--python 3.12` to its `uv tool install`.
 
 SpiderFoot and Blackbird run from git checkouts. Give each its own `.venv`, which the server picks up automatically, and tell the server where the checkout is:
 
@@ -259,8 +288,6 @@ uv pip install -r requirements.txt
 ```
 
 Then set `OSINT_SPIDERFOOT_DIR` to that folder in your client's config (`env`). Blackbird is the same with `https://github.com/antoniaci/blackbird` and `OSINT_BLACKBIRD_DIR`. SpiderFoot pins `lxml<5`, which has no builds for Python 3.13 and newer; to use a newer Python, apply [`patches/spiderfoot-requirements.patch`](https://github.com/renkagod/osint-toolbox-mcp/blob/main/patches/spiderfoot-requirements.patch) first.
-
-Finally, check: `uvx osint-toolbox-mcp --check` lists every tool as `ok`, `missing` (with how to install it) or `broken` (found but fails to start).
 
 ## Configuration
 
@@ -283,13 +310,14 @@ All settings are environment variables, set in the `env` block of your client's 
 
 | Variable | Meaning |
 |---|---|
-| `OSINT_SHERLOCK`, `OSINT_HOLEHE`, `OSINT_MAIGRET`, `OSINT_GHUNT`, `OSINT_THEHARVESTER`, `OSINT_PHONEINFOGA`, `OSINT_EXIFTOOL` | Full path to the tool, when it isn't on PATH |
+| `OSINT_SHERLOCK`, `OSINT_HOLEHE`, `OSINT_MAIGRET`, `OSINT_GHUNT`, `OSINT_THEHARVESTER`, `OSINT_SUBFINDER`, `OSINT_DNSTWIST`, `OSINT_DNSRECON`, `OSINT_PHONEINFOGA`, `OSINT_EXIFTOOL` | Full path to the tool, when it isn't on PATH |
 | `OSINT_SPIDERFOOT_DIR`, `OSINT_BLACKBIRD_DIR` | Folder of the SpiderFoot or Blackbird checkout |
 | `OSINT_SPIDERFOOT_PYTHON`, `OSINT_BLACKBIRD_PYTHON` | Python to run the checkout with; by default its `.venv`, then `python` on PATH |
+| `OSINT_TOOLBOX_HOME` | Where `--install` puts checkouts and downloads, and where the server looks for them |
 | `OSINT_MAX_OUTPUT_CHARS` | Longest result returned to the model, 100000 by default; `0` for no limit |
-| `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` | Passed on to the tools; whether a tool uses them depends on the tool |
+| `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` | Used by the built-in lookups and `--install` (HTTP and SOCKS5 proxies), and passed on to the tools, which may or may not use them |
 
-Besides PATH, the server looks in the folders `uv tool` and `pipx` install into (`~/.local/bin` by default), which desktop apps often leave out of PATH.
+Besides PATH, the server looks in the `--install` folder and in the folders `uv tool` and `pipx` install into (`~/.local/bin` by default), which desktop apps often leave out of PATH.
 
 ## Docker details
 
@@ -330,12 +358,14 @@ A full configuration:
 - "Which sites have an account registered to jane.doe@example.com?"
 - "Search for the username jdoe_1987 with Sherlock and Maigret and compare what they find."
 - "What subdomains and email addresses are public for example.com?"
+- "Which lookalike domains of example.com are registered, and do any of them have mail servers?"
+- "Who owns example.com and when does it expire? Show me how its homepage looked in 2015."
 - "Read the metadata of /home/me/photo.jpg and tell me where and with what it was taken."
 - "Run a passive SpiderFoot scan of example.com and summarize the findings."
 
 ## Troubleshooting
 
-- **A tool is missing.** Run `osint-toolbox-mcp --check` (or `docker run --rm ghcr.io/renkagod/osint-toolbox-mcp --check`). Desktop apps often start servers with a shorter PATH than your terminal; set the tool's `OSINT_*` variable to its full path.
+- **A tool is missing.** Run `uvx osint-toolbox-mcp --install`, or `--check` to see why a tool isn't found (`docker run --rm ghcr.io/renkagod/osint-toolbox-mcp --check` for the image). After installing, restart your client so it lists the new tools. Desktop apps often start servers with a shorter PATH than your terminal; set the tool's `OSINT_*` variable to its full path.
 - **Long scans time out.** Many clients stop waiting for a tool after a minute or so. Raise the limit where your client allows it: `MCP_TOOL_TIMEOUT` in milliseconds for Claude Code, `tool_timeout_sec` for Codex CLI, `timeout` in milliseconds on the server entry for Gemini CLI, `timeout` in seconds for Goose. Otherwise ask for faster runs: a `passive` SpiderFoot scan, Maigret without `all_sites`.
 - **GHunt fails.** It needs a valid login: run `ghunt login`. When the saved session has been revoked, `ghunt login` itself fails; run `ghunt login --clean` to delete it, then `ghunt login`.
 - **Empty results, errors or captchas.** Sites rate-limit and change their pages; retry later, lower the load, or go through a proxy. If a tool fails the same way outside the server, report it to that tool's project.

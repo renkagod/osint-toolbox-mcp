@@ -2,6 +2,21 @@
 
 The project follows [Semantic Versioning](https://semver.org/). The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.0] - 2026-09-24
+
+### Added
+
+- `osint-toolbox-mcp --install` installs the missing tools without admin rights: Python tools with `uv tool install`, SpiderFoot and Blackbird as checkouts with their own environments, PhoneInfoga, subfinder and ExifTool as downloads checked against their published checksums. `--install sherlock maigret` installs only the tools named.
+- `osint_toolbox_status` tells the agent which tools are installed and how to install the missing ones.
+- subfinder (passive subdomain search), dnstwist (registered lookalike domains) and dnsrecon (DNS reconnaissance).
+- Built-in lookups that need nothing installed: WHOIS (RDAP, with a fallback to plain WHOIS for registries without RDAP), DNS records over HTTPS, certificate transparency search (crt.sh) and Wayback Machine snapshots.
+- Built-in lookups honor HTTP and SOCKS5 proxies from `HTTP_PROXY`, `HTTPS_PROXY` and `ALL_PROXY`.
+- `OSINT_TOOLBOX_HOME` sets where `--install` puts checkouts and downloads; the server looks there without further setup.
+
+### Changed
+
+- The Docker image adds subfinder, dnstwist and dnsrecon.
+
 ## [1.0.1] - 2026-09-24
 
 ### Fixed
