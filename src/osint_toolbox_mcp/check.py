@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Collection
 
 from . import __version__, process
 from .locate import locate
@@ -29,8 +30,8 @@ async def _check(tool: Tool) -> tuple[str, str]:
     return "ok", located.command[-1]
 
 
-async def run() -> int:
-    """Print a line per tool; the exit code is 0 when every tool that can be here works."""
+async def run(labels: Collection[str] = ()) -> int:
+    """Print a line per tool; the exit code is 0 when every tool that can be here works, or every tool named."""
     programs = [tool for tool in TOOLS if tool.requires is not None]
     results = await asyncio.gather(*(_check(tool) for tool in programs))
     width = max(len(tool.label) for tool in programs)
@@ -44,4 +45,6 @@ async def run() -> int:
     print(f"\n{ready} of {len(expected)} tools ready.")
     if ready < len(expected):
         print(f"Install the missing ones with `{INSTALL_COMMAND}`; details: {INSTALL_GUIDE}")
+    if labels:
+        return 0 if all(status == "ok" for tool, (status, _) in zip(programs, results) if tool.label in labels) else 1
     return 0 if ready == len(expected) else 1

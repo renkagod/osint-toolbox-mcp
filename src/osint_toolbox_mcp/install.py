@@ -75,7 +75,7 @@ async def run(labels: list[str]) -> int:
             failed += 1
             print(f"failed: {error}")
     print()
-    return max(await check.run(), 1 if failed else 0)
+    return max(await check.run(labels), 1 if failed else 0)
 
 
 async def _install(tool: Tool, home: Path) -> str:

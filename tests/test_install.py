@@ -104,7 +104,7 @@ def test_phoneinfoga_release(monkeypatch, tmp_path):
 
 def test_run_installs_only_whats_missing(monkeypatch, capsys, isolated_tools):
     fake_executable(isolated_tools, "sherlock")
-    installed = []
+    installed, checked = [], []
 
     async def fake_install(tool, home):
         installed.append(tool.label)
@@ -112,7 +112,8 @@ def test_run_installs_only_whats_missing(monkeypatch, capsys, isolated_tools):
             raise InstallError("needs Perl")
         return "done"
 
-    async def fake_check():
+    async def fake_check(labels):
+        checked.append(labels)
         return 0
 
     monkeypatch.setattr(install, "_install", fake_install)
@@ -120,6 +121,7 @@ def test_run_installs_only_whats_missing(monkeypatch, capsys, isolated_tools):
     assert asyncio.run(install.run(["sherlock", "maigret", "exiftool"])) == 1
     output = capsys.readouterr().out
     assert installed == ["maigret", "exiftool"]
+    assert checked == [["sherlock", "maigret", "exiftool"]]
     assert "already installed" in output and "failed: needs Perl" in output
 
 

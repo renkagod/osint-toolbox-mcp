@@ -32,6 +32,13 @@ def test_missing_and_broken_tools(monkeypatch, capsys):
     assert "10 of 12 tools ready." in output
 
 
+def test_only_the_tools_named_decide_the_exit_code(monkeypatch, capsys):
+    fake_tools(monkeypatch, missing={"OSINT_BLACKBIRD_DIR"}, failing={"OSINT_SHERLOCK"})
+    assert asyncio.run(check.run(["maigret", "exiftool"])) == 0
+    assert asyncio.run(check.run(["maigret", "sherlock"])) == 1
+    assert "10 of 12 tools ready." in capsys.readouterr().out
+
+
 def test_docker_image_does_not_count_tools_left_out_of_it(monkeypatch, capsys):
     monkeypatch.setattr(check, "IN_CONTAINER", True)
     fake_tools(monkeypatch, missing={"OSINT_BLACKBIRD_DIR"})
