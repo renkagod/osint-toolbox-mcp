@@ -1,0 +1,75 @@
+import os
+import sys
+from pathlib import Path
+
+from conftest import REAL_SEARCH_PATH, fake_executable
+
+from osint_toolbox_mcp.locate import Program, Script, locate
+
+SHERLOCK = Program(("sherlock",), "OSINT_SHERLOCK")
+SPIDERFOOT = Script("sf.py", "OSINT_SPIDERFOOT_DIR", "OSINT_SPIDERFOOT_PYTHON")
+
+
+def test_program_on_the_search_path(isolated_tools):
+    path = fake_executable(isolated_tools, "sherlock")
+    located, _ = locate(SHERLOCK)
+    assert Path(located.command[0]) == path
+    assert located.cwd is None
+
+
+def test_missing_program():
+    located, reason = locate(SHERLOCK)
+    assert located is None
+    assert reason == "not found"
+
+
+def test_program_override(monkeypatch, tmp_path):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    path = fake_executable(elsewhere, "sherlock-custom")
+    monkeypatch.setenv("OSINT_SHERLOCK", str(path))
+    located, _ = locate(SHERLOCK)
+    assert Path(located.command[0]) == path
+
+
+def test_broken_override_is_explained(monkeypatch, isolated_tools, tmp_path):
+    fake_executable(isolated_tools, "sherlock")
+    monkeypatch.setenv("OSINT_SHERLOCK", str(tmp_path / "nope"))
+    located, reason = locate(SHERLOCK)
+    assert located is None
+    assert "OSINT_SHERLOCK" in reason
+
+
+def test_script_needs_its_folder(monkeypatch, tmp_path):
+    assert locate(SPIDERFOOT) == (None, "OSINT_SPIDERFOOT_DIR is not set")
+    monkeypatch.setenv("OSINT_SPIDERFOOT_DIR", str(tmp_path))
+    located, reason = locate(SPIDERFOOT)
+    assert located is None
+    assert "has no sf.py" in reason
+
+
+def test_script_prefers_the_checkout_venv(monkeypatch, tmp_path):
+    (tmp_path / "sf.py").write_text("")
+    venv_python = tmp_path / ".venv" / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+    venv_python.parent.mkdir(parents=True)
+    venv_python.write_text("")
+    monkeypatch.setenv("OSINT_SPIDERFOOT_DIR", str(tmp_path))
+    located, _ = locate(SPIDERFOOT)
+    assert located.command == (str(venv_python), str(tmp_path / "sf.py"))
+    assert located.cwd == str(tmp_path)
+
+
+def test_script_python_override(monkeypatch, tmp_path):
+    (tmp_path / "sf.py").write_text("")
+    monkeypatch.setenv("OSINT_SPIDERFOOT_DIR", str(tmp_path))
+    monkeypatch.setenv("OSINT_SPIDERFOOT_PYTHON", sys.executable)
+    located, _ = locate(SPIDERFOOT)
+    assert Path(located.command[0]).resolve() == Path(sys.executable).resolve()
+
+
+def test_search_path_adds_user_install_folders(monkeypatch, tmp_path):
+    monkeypatch.setenv("PATH", str(tmp_path / "a"))
+    monkeypatch.setenv("UV_TOOL_BIN_DIR", str(tmp_path / "uv-bin"))
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    folders = REAL_SEARCH_PATH().split(os.pathsep)
+    assert folders[:3] == [str(tmp_path / "a"), str(tmp_path / "uv-bin"), str(tmp_path / ".local" / "bin")]

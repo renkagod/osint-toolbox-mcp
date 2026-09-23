@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "osint-toolbox-mcp"
+dynamic = ["version"]
+description = "MCP server that lets AI agents run OSINT tools locally: Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot, Blackbird, PhoneInfoga, ExifTool."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "renkagod" }]
+keywords = [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "osint",
+    "reconnaissance",
+    "sherlock",
+    "maigret",
+    "holehe",
+    "ghunt",
+    "theharvester",
+    "spiderfoot",
+    "blackbird",
+    "phoneinfoga",
+    "exiftool",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/renkagod/osint-toolbox-mcp"
+Issues = "https://github.com/renkagod/osint-toolbox-mcp/issues"
+Changelog = "https://github.com/renkagod/osint-toolbox-mcp/blob/main/CHANGELOG.md"
+
+[project.scripts]
+osint-toolbox-mcp = "osint_toolbox_mcp.server:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.hatch.version]
+path = "src/osint_toolbox_mcp/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/osint_toolbox_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "mcpb", "server.json", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
