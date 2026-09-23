@@ -8,6 +8,8 @@ updates:
       - /docker/maigret
       - /docker/ghunt
       - /docker/theharvester
+      - /docker/dnstwist
+      - /docker/dnsrecon
     schedule:
       interval: weekly
 

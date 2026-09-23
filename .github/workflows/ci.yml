@@ -81,13 +81,13 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
       - name: Every tool in the image starts
         run: docker run --rm osint-toolbox-mcp:test --check
-      - name: The server lists the eight tools in the image
+      - name: The server lists every tool in the image
         run: |
           printf '%s\n' \
             '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{}}}' \
             '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
           | docker run -i --rm osint-toolbox-mcp:test \
-          | python3 -c 'import json, sys; tools = [json.loads(line) for line in sys.stdin][-1]["result"]["tools"]; assert len(tools) == 8, [t["name"] for t in tools]; print(len(tools), "tools")'
+          | python3 -c 'import json, sys; tools = [json.loads(line) for line in sys.stdin][-1]["result"]["tools"]; assert len(tools) == 16, [t["name"] for t in tools]; print(len(tools), "tools")'
       - name: Log in to GHCR
         if: github.event_name == 'push'
         uses: docker/login-action@v4

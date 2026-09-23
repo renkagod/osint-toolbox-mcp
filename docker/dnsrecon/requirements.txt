@@ -1,0 +1,1 @@
+dnsrecon @ git+https://github.com/darkoperator/dnsrecon@1.6.3
