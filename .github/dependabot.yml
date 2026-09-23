@@ -15,6 +15,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # The tools' pinned dependencies decide which Python the image can run (GHunt pins Pillow<11,
+      # which has no builds for Python 3.14); move to a newer one by hand, together with those pins
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: github-actions
     directory: /

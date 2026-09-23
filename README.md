@@ -3,8 +3,8 @@
 An MCP server that lets AI agents run classic OSINT tools on your own machine: Sherlock, Maigret, Holehe, GHunt, theHarvester, SpiderFoot, Blackbird, PhoneInfoga and ExifTool. No API keys and no cloud service in between: the tools run locally and query public sources directly.
 
 [![CI](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/osint-toolbox-mcp)](https://pypi.org/project/osint-toolbox-mcp/)
-[![Python](https://img.shields.io/pypi/pyversions/osint-toolbox-mcp)](https://pypi.org/project/osint-toolbox-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/osint-toolbox-mcp?logo=pypi&logoColor=white)](https://pypi.org/project/osint-toolbox-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/osint-toolbox-mcp?logo=python&logoColor=white)](https://pypi.org/project/osint-toolbox-mcp/)
 [![Docker image](https://img.shields.io/badge/image-ghcr.io%2Frenkagod%2Fosint--toolbox--mcp-blue?logo=docker&logoColor=white)](https://github.com/renkagod/osint-toolbox-mcp/pkgs/container/osint-toolbox-mcp)
 [![License: MIT](https://img.shields.io/github/license/renkagod/osint-toolbox-mcp)](https://github.com/renkagod/osint-toolbox-mcp/blob/main/LICENSE)
 
