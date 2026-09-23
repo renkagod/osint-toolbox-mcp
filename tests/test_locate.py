@@ -70,6 +70,7 @@ def test_script_python_override(monkeypatch, tmp_path):
 def test_search_path_adds_user_install_folders(monkeypatch, tmp_path):
     monkeypatch.setenv("PATH", str(tmp_path / "a"))
     monkeypatch.setenv("UV_TOOL_BIN_DIR", str(tmp_path / "uv-bin"))
+    monkeypatch.delenv("PIPX_BIN_DIR", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     folders = REAL_SEARCH_PATH().split(os.pathsep)
     assert folders[:3] == [str(tmp_path / "a"), str(tmp_path / "uv-bin"), str(tmp_path / ".local" / "bin")]
