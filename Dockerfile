@@ -4,7 +4,7 @@
 # redistributing it. Every Python tool gets its own virtual environment: their pinned dependencies
 # conflict (GHunt needs httpx<0.28, theHarvester pins httpx 0.28.1).
 
-FROM python:3.12-slim-trixie AS build
+FROM python:3.14-slim-trixie AS build
 
 ARG TARGETARCH
 ARG SPIDERFOOT_COMMIT=0f815a203afebf05c98b605dba5cf0475a0ee5fd
@@ -57,7 +57,7 @@ RUN python -m venv /opt/venvs/server \
  && /opt/venvs/server/bin/pip install --no-cache-dir /tmp/server
 
 
-FROM python:3.12-slim-trixie
+FROM python:3.14-slim-trixie
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates perl \
