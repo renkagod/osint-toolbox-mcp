@@ -52,8 +52,16 @@ jobs:
         run: python3 scripts/build_mcpb.py
 
   docker:
-    name: Docker image
-    runs-on: ubuntu-latest
+    # Each architecture builds and is tested on its own machine; emulating arm64 took most of an hour
+    name: Docker image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -61,16 +69,16 @@ jobs:
       IMAGE: ghcr.io/${{ github.repository_owner }}/osint-toolbox-mcp
     steps:
       - uses: actions/checkout@v7
-      - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
       - name: Build
         uses: docker/build-push-action@v7
         with:
           context: .
+          platforms: linux/${{ matrix.arch }}
           load: true
           tags: osint-toolbox-mcp:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
       - name: Every tool in the image starts
         run: docker run --rm osint-toolbox-mcp:test --check
       - name: The server lists the eight tools in the image
@@ -87,13 +95,51 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish the edge image
+      - name: Push by digest
+        id: push
         if: github.event_name == 'push'
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ env.IMAGE }}:edge
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+      - name: Save the digest
+        if: github.event_name == 'push'
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          digest="${{ steps.push.outputs.digest }}"
+          touch "$RUNNER_TEMP/digests/${digest#sha256:}"
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'push'
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  edge:
+    name: Publish the edge image
+    if: github.event_name == 'push'
+    needs: docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/osint-toolbox-mcp
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag both architectures as edge
+        working-directory: ${{ runner.temp }}/digests
+        run: docker buildx imagetools create -t "$IMAGE:edge" $(printf "$IMAGE@sha256:%s " *)
