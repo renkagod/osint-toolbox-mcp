@@ -277,7 +277,9 @@ async def _ghunt(arguments: dict[str, Any], located: Located) -> str:
         )
     if done.returncode != 0:
         raise _failure("GHunt", done)
-    return done.stdout.strip()
+    # Without a report there are only GHunt's status lines, like "[-] The target wasn't found.", after its banner
+    status = [line.strip() for line in done.stdout.splitlines() if line.strip().startswith("[")]
+    return "\n".join(status) or done.stdout.strip()
 
 
 async def _maigret(arguments: dict[str, Any], located: Located) -> str:

@@ -301,6 +301,8 @@ Besides PATH, the server looks in the folders `uv tool` and `pipx` install into 
   docker run -it --rm --entrypoint ghunt -v osint-toolbox-ghunt:/home/osint/.malfrats ghcr.io/renkagod/osint-toolbox-mcp login
   ```
 
+  GHunt's listening mode (option 1) doesn't work in a container; pick option 2 (paste from the GHunt Companion extension) or 3 (an `oauth_token`, see [GHunt's README](https://github.com/mxrch/GHunt#readme)).
+
 - **API keys**: theHarvester reads `/home/osint/.theHarvester/api-keys.yaml` (mount your file there), PhoneInfoga reads its keys from environment variables (`-e NAME=value`).
 - **Proxy**: `-e HTTPS_PROXY=http://host.docker.internal:8080`, for example.
 - **Tags**: `latest` and version tags such as `1.0.0` for releases, `edge` for the current `main`. Built for linux/amd64 and linux/arm64.

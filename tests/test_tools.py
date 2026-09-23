@@ -226,6 +226,13 @@ def test_ghunt_modes(runner, identifier, mode):
     assert runner.arguments[:2] == [mode, identifier]
 
 
+def test_ghunt_without_a_report_returns_its_status_lines(runner):
+    output = '  .d8888b.  888\n  "Y8888P88 888\n\n🎉 You are up to date !\n\n[+] Authenticated !\n\n[-] The target wasn\'t found.\n'
+    runner.respond = lambda command, cwd: Completed(0, output, "")
+    result = run_tool("ghunt_google_search", {"identifier": "nobody@gmail.com"})
+    assert result == "[+] Authenticated !\n[-] The target wasn't found."
+
+
 def test_ghunt_rejects_other_identifiers(runner):
     with pytest.raises(ToolError):
         run_tool("ghunt_google_search", {"identifier": "alice"})
