@@ -6,7 +6,7 @@ import asyncio
 
 from . import __version__, process
 from .locate import locate
-from .tools import INSTALL_GUIDE, TOOLS, Tool
+from .tools import IN_CONTAINER, INSTALL_GUIDE, TOOLS, Tool
 
 PROBE_TIMEOUT = 120  # GHunt checks for updates online before printing its help
 
@@ -14,6 +14,8 @@ PROBE_TIMEOUT = 120  # GHunt checks for updates online before printing its help
 async def _check(tool: Tool) -> tuple[str, str]:
     located, reason = locate(tool.requires)
     if located is None:
+        if IN_CONTAINER and not tool.in_image:
+            return "absent", "not in the Docker image: it has no license that allows redistributing it"
         return "missing", f"{reason}; to install: {tool.install}"
     try:
         done = await asyncio.wait_for(process.run([*located.command, *tool.probe], cwd=located.cwd), PROBE_TIMEOUT)
@@ -28,13 +30,15 @@ async def _check(tool: Tool) -> tuple[str, str]:
 
 
 async def run() -> int:
+    """Print a line per tool; the exit code is 0 when every tool that can be here works."""
     results = await asyncio.gather(*(_check(tool) for tool in TOOLS))
     width = max(len(tool.label) for tool in TOOLS)
     print(f"osint-toolbox-mcp {__version__}\n")
     for tool, (status, detail) in zip(TOOLS, results):
         print(f"  {status:<8} {tool.label:<{width}}  {detail}")
-    ready = sum(status == "ok" for status, _ in results)
-    print(f"\n{ready} of {len(TOOLS)} tools ready.")
-    if ready < len(TOOLS):
+    expected = [status for status, _ in results if status != "absent"]
+    ready = expected.count("ok")
+    print(f"\n{ready} of {len(expected)} tools ready.")
+    if ready < len(expected):
         print(f"Install guide: {INSTALL_GUIDE}")
-    return 0 if ready == len(TOOLS) else 1
+    return 0 if ready == len(expected) else 1

@@ -37,6 +37,7 @@ class Tool:
     probe: tuple[str, ...]  # arguments that make the program print its version or help and exit
     run: Callable[[dict[str, Any], Located], Awaitable[str]]
     open_world: bool = True
+    in_image: bool = True  # shipped in the Docker image
 
     def definition(self) -> dict[str, Any]:
         return {
@@ -271,8 +272,8 @@ async def _ghunt(arguments: dict[str, Any], located: Located) -> str:
     output = f"{done.stdout}\n{done.stderr}".lower()
     if "ghunt login" in output or "master token" in output:
         raise ToolError(
-            "GHunt has no valid login (missing, or its master token expired): run `ghunt login` "
-            "(for Docker, see the README), then retry"
+            "GHunt has no valid login: run `ghunt login` (for Docker, see the README). If the saved session "
+            "was revoked, `ghunt login` fails too: run `ghunt login --clean` first to delete it."
         )
     if done.returncode != 0:
         raise _failure("GHunt", done)
@@ -581,6 +582,7 @@ TOOLS: tuple[Tool, ...] = (
         ),
         probe=("--help",),
         run=_blackbird,
+        in_image=False,  # no license that allows redistributing it
     ),
     Tool(
         name="phoneinfoga_scan",

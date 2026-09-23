@@ -15,5 +15,5 @@ First release.
 - Requests run concurrently. A cancelled request stops its tool together with the processes the tool started.
 - Compact results: Maigret's report is reduced to profile URLs and the data found on them, SpiderFoot events are grouped by type without duplicates, and every result is capped at 100,000 characters (`OSINT_MAX_OUTPUT_CHARS`).
 - Values that start with `-` are rejected, so no tool can mistake an input for an option.
-- Docker image with all nine tools for linux/amd64 and linux/arm64.
+- Docker image for linux/amd64 and linux/arm64 with every tool except Blackbird, which has no license that allows redistributing it.
 - MCP bundle (`.mcpb`) for desktop clients that install servers with one click.

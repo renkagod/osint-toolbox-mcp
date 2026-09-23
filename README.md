@@ -18,7 +18,7 @@ Ask your assistant "which sites have an account for jane@example.com?" or "what 
 |---|---|---|---|
 | `sherlock_username_search` | username | accounts on 400+ sites | Sherlock |
 | `maigret_username_search` | username | accounts on up to 3000+ sites, with the profile data found on them | Maigret |
-| `blackbird_username_search` | username | accounts on the 700+ sites of the WhatsMyName list | Blackbird checkout |
+| `blackbird_username_search` | username | accounts on the 700+ sites of the WhatsMyName list | Blackbird checkout (not in the Docker image) |
 | `holehe_email_search` | email address | which of about 120 sites have an account for it | Holehe |
 | `ghunt_google_search` | Google account email or Gaia ID | name, profile picture, Maps reviews, calendar and other public data | GHunt, logged in |
 | `theharvester_domain_search` | domain or company name | email addresses, subdomains, hosts, IP addresses | theHarvester |
@@ -32,7 +32,7 @@ Only installed tools are offered to the agent. Runs take from seconds to half an
 
 Pick one:
 
-- **Docker**: all nine tools in one image, nothing else to install.
+- **Docker**: every tool but Blackbird in one image, nothing else to install.
 - **uvx**: the server uses the tools installed on your machine.
 
 ### Docker
@@ -85,7 +85,7 @@ To run the latest code from `main` instead of a release, use `uvx --from git+htt
 
 One-click install:
 
-| Client | Docker (all tools) | uvx (your tools) |
+| Client | Docker (eight tools) | uvx (your tools) |
 |---|---|---|
 | Cursor | [![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=osint-toolbox&config=eyJjb21tYW5kIjoiZG9ja2VyIiwiYXJncyI6WyJydW4iLCItaSIsIi0tcm0iLCJnaGNyLmlvL3JlbmthZ29kL29zaW50LXRvb2xib3gtbWNwIl19) | [![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=osint-toolbox&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJvc2ludC10b29sYm94LW1jcCJdfQ%3D%3D) |
 | VS Code | [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=osint-toolbox&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-i%22%2C%22--rm%22%2C%22ghcr.io%2Frenkagod%2Fosint-toolbox-mcp%22%5D%7D) | [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=osint-toolbox&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22osint-toolbox-mcp%22%5D%7D) |
@@ -235,7 +235,7 @@ mcpServers:
 
 ## Install the tools
 
-Skip this if you use Docker. Otherwise install any subset. Put each Python tool in its own environment with `uv tool install` (or `pipx install`): their dependencies conflict with each other.
+Skip this if you use Docker, unless you want Blackbird. Otherwise install any subset. Put each Python tool in its own environment with `uv tool install` (or `pipx install`): their dependencies conflict with each other.
 
 | Tool | Install | Tested with |
 |---|---|---|
@@ -293,6 +293,7 @@ Besides PATH, the server looks in the folders `uv tool` and `pipx` install into 
 
 ## Docker details
 
+- **Blackbird** is not in the image: it has no license that allows redistributing it. Install it yourself to use it.
 - **ExifTool**: the container sees only mounted files. Add `-v /path/to/files:/data:ro` to the arguments and ask about `/data/photo.jpg`.
 - **GHunt**: log in once into a named volume, then mount it:
 
@@ -334,7 +335,7 @@ A full configuration:
 
 - **A tool is missing.** Run `osint-toolbox-mcp --check` (or `docker run --rm ghcr.io/renkagod/osint-toolbox-mcp --check`). Desktop apps often start servers with a shorter PATH than your terminal; set the tool's `OSINT_*` variable to its full path.
 - **Long scans time out.** Many clients stop waiting for a tool after a minute or so. Raise the limit where your client allows it: `MCP_TOOL_TIMEOUT` in milliseconds for Claude Code, `tool_timeout_sec` for Codex CLI, `timeout` in milliseconds on the server entry for Gemini CLI, `timeout` in seconds for Goose. Otherwise ask for faster runs: a `passive` SpiderFoot scan, Maigret without `all_sites`.
-- **GHunt fails.** It needs a valid login: run `ghunt login` again when the saved one expires.
+- **GHunt fails.** It needs a valid login: run `ghunt login`. When the saved session has been revoked, `ghunt login` itself fails; run `ghunt login --clean` to delete it, then `ghunt login`.
 - **Empty results, errors or captchas.** Sites rate-limit and change their pages; retry later, lower the load, or go through a proxy. If a tool fails the same way outside the server, report it to that tool's project.
 - **Windows and `.bat` or `.cmd` wrappers.** Arguments to such wrappers pass through `cmd.exe`, so the server refuses inputs with characters like `&` or `|`; point the `OSINT_*` variable at the real executable instead.
 
