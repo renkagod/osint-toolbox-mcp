@@ -34,10 +34,12 @@ PACKAGES = {
     "holehe": "holehe",
     "maigret": "maigret",
     "ghunt": "ghunt",
-    "theharvester": "git+https://github.com/laramies/theHarvester",
-    "dnstwist": "dnstwist[full]",
-    "dnsrecon": "git+https://github.com/darkoperator/dnsrecon",
+    "dnstwist": "dnstwist",
 }
+# dnstwist[full] also pulls py-tlsh, which needs a C++ compiler where it has no wheels; these are what it uses here
+EXTRAS = {"dnstwist": ("dnspython", "tld", "idna")}
+# Not on PyPI: installed from the latest GitHub release, whose main branch can move ahead of any Python we pick
+GITHUB_PACKAGES = {"theharvester": ("theHarvester", "laramies/theHarvester"), "dnsrecon": ("dnsrecon", "darkoperator/dnsrecon")}
 CHECKOUTS = {"spiderfoot": "smicallef/spiderfoot", "blackbird": "antoniaci/blackbird"}
 
 
@@ -77,7 +79,7 @@ async def run(labels: list[str]) -> int:
 
 
 async def _install(tool: Tool, home: Path) -> str:
-    if tool.label in PACKAGES:
+    if tool.label in PACKAGES or tool.label in GITHUB_PACKAGES:
         return await _uv_tool(tool.label)
     if tool.label in CHECKOUTS:
         return await _checkout(tool.label, home)
@@ -104,9 +106,18 @@ async def _run(command: list[str]) -> None:
 
 
 async def _uv_tool(label: str) -> str:
-    await _run([_uv(), "tool", "install", "--python", PYTHON, PACKAGES[label]])
+    if label in GITHUB_PACKAGES:
+        name, repository = GITHUB_PACKAGES[label]
+        tag = (await _release(repository))["tag_name"]
+        requirement = f"{name} @ https://github.com/{repository}/archive/refs/tags/{tag}.zip"
+    else:
+        requirement = PACKAGES[label]
+    command = [_uv(), "tool", "install", "--python", PYTHON, requirement]
+    for extra in EXTRAS.get(label, ()):
+        command += ["--with", extra]
+    await _run(command)
     note = "; run `ghunt login` before using it" if label == "ghunt" else ""
-    return f"done (uv tool install {PACKAGES[label]}){note}"
+    return f"done ({requirement}){note}"
 
 
 async def _checkout(label: str, home: Path) -> str:

@@ -1,1 +1,4 @@
-dnstwist[full]==20250130
+dnstwist==20250130
+dnspython==2.8.0
+tld==0.13.2
+idna==3.20

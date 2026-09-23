@@ -251,7 +251,7 @@ uvx osint-toolbox-mcp --install
 
 installs every tool that is missing, without admin rights, then checks that each one starts. `uvx osint-toolbox-mcp --install sherlock maigret` installs only the tools named. It needs [uv](https://docs.astral.sh/uv/) and:
 
-- puts each Python tool (Sherlock, Holehe, Maigret, GHunt, theHarvester, dnstwist, dnsrecon) in its own environment with `uv tool install`, on Python 3.12: their dependencies conflict with each other, and some have no builds for newer Pythons;
+- puts each Python tool (Sherlock, Holehe, Maigret, GHunt, theHarvester, dnstwist, dnsrecon) in its own environment with `uv tool install`, on Python 3.12: their dependencies conflict with each other, and some have no builds for newer Pythons. theHarvester and dnsrecon come from their latest GitHub releases;
 - downloads SpiderFoot and Blackbird from GitHub, each with its own virtual environment;
 - downloads PhoneInfoga, subfinder and ExifTool and checks them against the checksums their authors publish. On macOS and Linux, ExifTool needs Perl, which those systems usually have.
 
@@ -267,9 +267,9 @@ Checkouts and downloads go to `%LOCALAPPDATA%\osint-toolbox-mcp` on Windows, `~/
 | Holehe | `uv tool install holehe` | 1.61 |
 | Maigret | `uv tool install maigret` | 0.6 |
 | GHunt | `uv tool install ghunt`, then `ghunt login` | 2.3.4 |
-| theHarvester | `uv tool install git+https://github.com/laramies/theHarvester` | 4.11.1 |
-| dnstwist | `uv tool install "dnstwist[full]"` | 20250130 |
-| dnsrecon | `uv tool install git+https://github.com/darkoperator/dnsrecon` | 1.6.3 |
+| theHarvester | `uv tool install git+https://github.com/laramies/theHarvester@4.11.1`, or its newest release tag | 4.11.1 |
+| dnstwist | `uv tool install dnstwist --with dnspython --with tld --with idna` | 20250130 |
+| dnsrecon | `uv tool install git+https://github.com/darkoperator/dnsrecon@1.6.3`, or its newest release tag | 1.6.3 |
 | subfinder | a binary from [its releases](https://github.com/projectdiscovery/subfinder/releases), on PATH | 2.16.0 |
 | PhoneInfoga | a binary from [its releases](https://github.com/sundowndev/phoneinfoga/releases), on PATH | 2.11.0 |
 | ExifTool | [exiftool.org](https://exiftool.org), `brew install exiftool` or `apt install libimage-exiftool-perl` | 13.59 |

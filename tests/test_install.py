@@ -144,3 +144,34 @@ def test_uv_tool_uses_python_3_12(monkeypatch):
     monkeypatch.setattr(install.process, "run", fake_run)
     assert "ghunt login" in asyncio.run(install._uv_tool("ghunt"))
     assert commands == [[sys.executable, "tool", "install", "--python", "3.12", "ghunt"]]
+
+
+def test_github_packages_install_the_latest_release(monkeypatch):
+    commands = []
+
+    async def fake_run(command, cwd=None):
+        commands.append(command)
+        return install.process.Completed(0, "", "")
+
+    async def fake_release(repository):
+        return {"tag_name": "4.11.1"}
+
+    monkeypatch.setenv("UV", "uv")
+    monkeypatch.setattr(install.process, "run", fake_run)
+    monkeypatch.setattr(install, "_release", fake_release)
+    asyncio.run(install._uv_tool("theharvester"))
+    requirement = "theHarvester @ https://github.com/laramies/theHarvester/archive/refs/tags/4.11.1.zip"
+    assert commands == [["uv", "tool", "install", "--python", "3.12", requirement]]
+
+
+def test_dnstwist_gets_only_the_extras_it_uses(monkeypatch):
+    commands = []
+
+    async def fake_run(command, cwd=None):
+        commands.append(command)
+        return install.process.Completed(0, "", "")
+
+    monkeypatch.setenv("UV", "uv")
+    monkeypatch.setattr(install.process, "run", fake_run)
+    asyncio.run(install._uv_tool("dnstwist"))
+    assert commands[0][-7:] == ["dnstwist", "--with", "dnspython", "--with", "tld", "--with", "idna"]
