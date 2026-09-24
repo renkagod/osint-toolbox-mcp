@@ -1,18 +1,16 @@
 # osint-toolbox-mcp
 
-An MCP server that lets AI agents run classic OSINT tools on your own machine: Sherlock, Maigret, Blackbird, Holehe, GHunt, theHarvester, SpiderFoot, subfinder, dnstwist, dnsrecon, PhoneInfoga and ExifTool, plus built-in WHOIS, DNS, certificate transparency and Wayback Machine lookups. No API keys and no cloud service in between: the tools run locally and query public sources directly.
-
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/osint-toolbox-mcp?logo=pypi&logoColor=white)](https://pypi.org/project/osint-toolbox-mcp/)
-[![Python](https://img.shields.io/pypi/pyversions/osint-toolbox-mcp?logo=python&logoColor=white)](https://pypi.org/project/osint-toolbox-mcp/)
-[![Docker image](https://img.shields.io/badge/image-ghcr.io%2Frenkagod%2Fosint--toolbox--mcp-blue?logo=docker&logoColor=white)](https://github.com/renkagod/osint-toolbox-mcp/pkgs/container/osint-toolbox-mcp)
-[![License: MIT](https://img.shields.io/github/license/renkagod/osint-toolbox-mcp)](https://github.com/renkagod/osint-toolbox-mcp/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/osint-toolbox-mcp.svg)](https://pypi.org/project/osint-toolbox-mcp/)
 
 <!-- mcp-name: io.github.renkagod/osint-toolbox-mcp -->
 
+An MCP server that lets AI agents run classic OSINT tools on your own machine: Sherlock, Maigret, Blackbird, Holehe, GHunt, theHarvester, SpiderFoot, subfinder, dnstwist, dnsrecon, PhoneInfoga and ExifTool, plus built-in WHOIS, DNS, certificate transparency and Wayback Machine lookups. No API keys and no cloud service in between: the tools run locally and query public sources directly.
+
 Ask your assistant "which sites have an account for jane@example.com?" or "what can you find about example.com?", and it picks the tools, runs them and reads the results for you.
 
-## Tools
+## Features
 
 | Tool | Give it | You get | Needs |
 |---|---|---|---|
@@ -379,10 +377,12 @@ These tools collect information about real people and organizations. Use them on
 
 Issues and pull requests are welcome; see [CONTRIBUTING.md](https://github.com/renkagod/osint-toolbox-mcp/blob/main/CONTRIBUTING.md). Report vulnerabilities privately as described in [SECURITY.md](https://github.com/renkagod/osint-toolbox-mcp/blob/main/SECURITY.md). Changes are listed in the [changelog](https://github.com/renkagod/osint-toolbox-mcp/blob/main/CHANGELOG.md).
 
-## License and credits
-
-MIT, see [LICENSE](https://github.com/renkagod/osint-toolbox-mcp/blob/main/LICENSE).
+## Credits
 
 The tools belong to their authors and keep their own licenses: [Sherlock](https://github.com/sherlock-project/sherlock), [Maigret](https://github.com/soxoj/maigret), [Holehe](https://github.com/megadose/holehe), [GHunt](https://github.com/mxrch/GHunt), [theHarvester](https://github.com/laramies/theHarvester), [SpiderFoot](https://github.com/smicallef/spiderfoot), [Blackbird](https://github.com/antoniaci/blackbird), [PhoneInfoga](https://github.com/sundowndev/phoneinfoga), [ExifTool](https://exiftool.org). The server starts them as separate programs; the Docker image contains them unmodified.
 
 This project started from [frishtik/osint-tools-mcp-server](https://github.com/frishtik/osint-tools-mcp-server) (MIT).
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 [renkagod](https://github.com/renkagod).
