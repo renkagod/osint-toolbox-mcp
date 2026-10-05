@@ -173,12 +173,16 @@ async def crtsh_certificate_search(arguments: dict[str, Any], located: Any = Non
     if not flag(arguments, "include_expired", True):
         query["exclude"] = "expired"
     url = f"https://crt.sh/?{urllib.parse.urlencode(query)}"
-    try:
-        certificates = await asyncio.to_thread(web.fetch_json, url, timeout=90)
-    except web.WebError:
-        # crt.sh often fails under load; one retry usually gets through
-        await asyncio.sleep(3)
-        certificates = await _get_json(url, timeout=90)
+    for attempt in range(3):
+        try:
+            certificates = await asyncio.to_thread(web.fetch_json, url, timeout=90)
+            break
+        except web.WebError:
+            # crt.sh often answers 502 under load and recovers within a minute
+            if attempt == 2:
+                certificates = await _get_json(url, timeout=90)
+            else:
+                await asyncio.sleep(5 * (attempt + 1))
     entries = {entry.strip().lower() for certificate in certificates
                for entry in str(certificate.get("name_value", "")).splitlines() if entry.strip()}
     # Certificates also name email addresses and, in test certificates, free text
