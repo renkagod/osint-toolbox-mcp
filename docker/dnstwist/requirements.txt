@@ -1,4 +1,4 @@
 dnstwist==20250130
-dnspython==2.8.0
+dnspython==2.9.0
 tld==0.13.2
 idna==3.20
