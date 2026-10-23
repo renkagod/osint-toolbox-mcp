@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/renkagod/osint-toolbox-mcp/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/osint-toolbox-mcp.svg)](https://pypi.org/project/osint-toolbox-mcp/)
+[![Donate](https://img.shields.io/badge/Donate-crypto-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/renkagod/.github/blob/main/DONATE.md)
 
 <!-- mcp-name: io.github.renkagod/osint-toolbox-mcp -->
 
@@ -382,6 +383,10 @@ Issues and pull requests are welcome; see [CONTRIBUTING.md](https://github.com/r
 The tools belong to their authors and keep their own licenses: [Sherlock](https://github.com/sherlock-project/sherlock), [Maigret](https://github.com/soxoj/maigret), [Holehe](https://github.com/megadose/holehe), [GHunt](https://github.com/mxrch/GHunt), [theHarvester](https://github.com/laramies/theHarvester), [SpiderFoot](https://github.com/smicallef/spiderfoot), [Blackbird](https://github.com/antoniaci/blackbird), [PhoneInfoga](https://github.com/sundowndev/phoneinfoga), [ExifTool](https://exiftool.org). The server starts them as separate programs; the Docker image contains them unmodified.
 
 This project started from [frishtik/osint-tools-mcp-server](https://github.com/frishtik/osint-tools-mcp-server) (MIT).
+
+## Support
+
+If this project is useful to you, you can support it with crypto: [donation addresses](https://github.com/renkagod/.github/blob/main/DONATE.md).
 
 ## License
 
