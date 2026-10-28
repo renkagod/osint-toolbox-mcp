@@ -28,7 +28,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
       - name: Install and check every tool
         run: uv run osint-toolbox-mcp --install
       - name: The new tools answer
